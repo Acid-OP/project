@@ -1,0 +1,20 @@
+{
+  "name": "http",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "pnpm run build && pnpm run start",
+    "build": "tsc -b",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@repo/db" : "workspace:*",
+    "@types/express": "^5.0.3",
+    "express": "^5.1.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
