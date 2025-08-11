@@ -3,12 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack --port 3001",
+ "scripts": {
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "lint": "next lint"
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
