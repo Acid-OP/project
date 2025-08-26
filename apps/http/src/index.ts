@@ -1,10 +1,10 @@
 import express from "express";
 import { prismaClient } from "@repo/db/client";
-
+import dotenv from "dotenv";
+dotenv.config()
 const app = express();
 app.use(express.json());
 
-// POST /user - create a new user
 app.post("/user", async (req, res) => {
   const { email, password } = req.body;
 
@@ -19,7 +19,6 @@ app.post("/user", async (req, res) => {
   }
 });
 
-// GET /users - fetch all users
 app.get("/users", async (req, res) => {
   try {
     const users = await prismaClient.user.findMany();
@@ -29,4 +28,6 @@ app.get("/users", async (req, res) => {
     res.status(500).json({ error: "Error fetching users" });
   }
 });
-app.listen(process.env.HTTP_PORT);
+
+console.log(process.env.HTTP_PORT);
+app.listen(process.env.HTTP_PORT!);
