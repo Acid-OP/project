@@ -14,8 +14,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/redis": "^4.0.11",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.2.1",
+    "redis": "^5.8.2",
     "typescript": "^5.9.2",
     "ws": "^8.18.3"
   }

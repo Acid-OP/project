@@ -1,17 +1,30 @@
-import WebSocket, { WebSocketServer } from 'ws';
-import dotenv from 'dotenv';
+import WebSocket from 'ws';
 
-dotenv.config();
+const symbols = ['ethusdt', 'btcusdt', 'solusdt'];
+const binanceUrl = `wss://stream.binance.com:9443/stream?streams=${symbols.map(s => `${s}@trade`).join('/')}`;
 
-if (!process.env.PORT) throw new Error('PORT is not defined in .env');
+const ws = new WebSocket(binanceUrl);
 
-const port = parseInt(process.env.PORT, 10);
-const wss = new WebSocketServer({ port });
+ws.on('open', () => {
+  console.log('✅ Connected to Binance WebSocket');
+});
 
-wss.on('connection', (ws: WebSocket) => {
-  ws.send('Hello from server!');
+ws.on('message', (raw) => {
+  try {
+    const message = JSON.parse(raw.toString());
+    
+    const trade = {
+      symbol: message.data.s,
+      price: parseFloat(message.data.p),
+      qty: parseFloat(message.data.q),
+      ts: message.data.T
+    };
+    
+  } catch (error) {
+    console.error('❌ Parse error:', error);
+  }
+});
 
-  ws.on('message', (message: WebSocket.Data) => {
-    ws.send(`Server got: ${message}`);
-  });
+ws.on('error', (error) => {
+  console.error('❌ WebSocket error:', error);
 });
