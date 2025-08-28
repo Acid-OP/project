@@ -1,137 +1,181 @@
 import WebSocket from 'ws';
 import { createClient } from 'redis';
+import { prismaClient, Prisma } from '@repo/db/client';
+const subRedis = createClient();
+const pubRedis = subRedis.duplicate();
+await Promise.all([subRedis.connect(), pubRedis.connect()]);
 
 const symbols = ['ethusdt', 'btcusdt', 'solusdt'];
-const binanceUrl = `wss://stream.binance.com:9443/stream?streams=${symbols.map(s => `${s}@trade`).join('/')}`;
-const redis = createClient();
+const ws = new WebSocket(
+  `wss://stream.binance.com:9443/stream?streams=${symbols
+    .map(s => `${s}@trade`)
+    .join('/')}`,
+);
 
-redis.connect().then(() => {
-  console.log('✅ Connected to Redis');
-}).catch((error) => {
-  console.error('❌ Redis connection failed:', error);
-});
-
-const ws = new WebSocket(binanceUrl);
-
-ws.on('open', () => {
-  console.log('✅ Connected to Binance WebSocket');
-});
-
-ws.on('message', (raw) => {
+ws.on('message', raw => {
   try {
-    const message = JSON.parse(raw.toString());
-    const trade = {
-      symbol: message.data.s,
-      price: parseFloat(message.data.p),
-      qty: parseFloat(message.data.q),
-      ts: message.data.T
-    };
-    redis.publish('trades', JSON.stringify(trade));
-  } catch (error) {
-    console.error('❌ Parse error:', error);
+    const m = JSON.parse(raw.toString());
+    pubRedis.publish('trades', JSON.stringify({
+      symbol: m.data.s,
+      price: Number(m.data.p),
+      qty:   Number(m.data.q),
+      ts:    m.data.T,
+    }),
+  );
+} catch (err) {
+    // silent-fail 
   }
 });
 
-ws.on('error', (error) => {
-  console.error('❌ WebSocket error:', error);
-});
-
-const activeBuckets = new Map();
-const intervals: Record<string, number> = {
-  '1m': 60000,
-  '5m': 300000,
-  '15m': 900000,
-  '1h': 3600000,
-  '4h': 14400000
+type Bucket = {
+  symbol: string;
+  interval: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  startTime: number;
+  endTime: number;
+  tradeCount: number;
 };
 
-function getBucketKey(symbol: string, ts: number, interval: string): string {
-  const intervalMs = intervals[interval];
-  if (!intervalMs) return '';
-  const bucketStart = Math.floor(ts / intervalMs) * intervalMs;
-  return `${symbol}:${interval}:${bucketStart}`;
-}
+const intervals: Record<string, number> = {
+  '1m':  60_000,
+  '5m':  300_000,
+  '15m': 900_000,
+  '1h':  3_600_000,
+  '4h':  14_400_000,
+};
 
-function createNewBucket(trade: any, interval: string) {
-  const intervalMs = intervals[interval];
-  if (!intervalMs) return null;
-  const bucketStart = Math.floor(trade.ts / intervalMs) * intervalMs;
+const active = new Map<string, Bucket>();
+const batch: any[] = [];
+const BATCH_SIZE    = 50;
+const BATCH_TIMEOUT = 30_000;
+
+
+const key = (s: string, ts: number, i: string) => {
+  const ms = intervals[i];
+  return ms ? `${s}:${i}:${Math.floor(ts / ms) * ms}` : '';
+};
+
+const newBucket = (t: any, i: string): Bucket | null => {
+  const ms = intervals[i];
+  if (!ms) return null;
+  const start = Math.floor(t.ts / ms) * ms;
   return {
-    symbol: trade.symbol,
-    interval: interval,
-    open: trade.price,
-    high: trade.price,
-    low: trade.price,
-    close: trade.price,
-    volume: trade.qty,
-    startTime: bucketStart,
-    endTime: bucketStart + intervalMs,
-    tradeCount: 1
+    symbol: t.symbol,
+    interval: i,
+    open: t.price,
+    high: t.price,
+    low:  t.price,
+    close: t.price,
+    volume: t.qty,
+    startTime: start,
+    endTime: start + ms,
+    tradeCount: 1,
   };
+};
+
+const update = (b: Bucket, t: any) => {
+  b.high        = Math.max(b.high, t.price);
+  b.low         = Math.min(b.low, t.price);
+  b.close       = t.price;
+  b.volume     += t.qty;
+  b.tradeCount += 1;
+};
+
+async function flushBatch() {
+  if (!batch.length) return;
+  const current = batch.splice(0, batch.length);
+  try {
+    await prismaClient.$transaction(tx =>
+      Promise.all(
+        current.map(c =>
+          tx.ohlcvCandle.upsert({
+            where: {
+              symbol_interval_openTime: {
+                symbol:   c.symbol,
+                interval: c.interval,
+                openTime: BigInt(c.openTime),
+              },
+            },
+            update: {
+              closeTime: BigInt(c.closeTime),
+              high:     new Prisma.Decimal(c.high.toString()),
+              low:      new Prisma.Decimal(c.low.toString()),
+              close:    new Prisma.Decimal(c.close.toString()),
+              volume:   new Prisma.Decimal(c.volume.toString()),
+              trades:   c.trades,
+            },
+            create: {
+              symbol:   c.symbol,
+              interval: c.interval,
+              openTime:  BigInt(c.openTime),
+              closeTime: BigInt(c.closeTime),
+              open:    new Prisma.Decimal(c.open.toString()),
+              high:    new Prisma.Decimal(c.high.toString()),
+              low:     new Prisma.Decimal(c.low.toString()),
+              close:   new Prisma.Decimal(c.close.toString()),
+              volume:  new Prisma.Decimal(c.volume.toString()),
+              trades:  c.trades,
+            },
+          }),
+        ),
+      ),
+    );
+  } catch {
+    batch.unshift(...current);   
+  }
 }
 
-function updateBucket(bucket: any, trade: any) {
-  bucket.high = Math.max(bucket.high, trade.price);
-  bucket.low = Math.min(bucket.low, trade.price);
-  bucket.close = trade.price;
-  bucket.volume += trade.qty;
-  bucket.tradeCount += 1;
-}
-
-function publishCompletedBucket(bucket: any) {
-  const candle = {
-    symbol: bucket.symbol,
-    interval: bucket.interval,
-    openTime: bucket.startTime,
-    closeTime: bucket.endTime - 1,
-    open: bucket.open,
-    high: bucket.high,
-    low: bucket.low,
-    close: bucket.close,
-    volume: bucket.volume,
-    trades: bucket.tradeCount
-  };
-  redis.publish('new_candles', JSON.stringify(candle));
-  console.log(`📊 ${candle.interval} ${candle.symbol}: ${candle.close}`);
-}
+const commit = (c: any) => {
+  batch.push(c);
+  if (batch.length >= BATCH_SIZE) void flushBatch();
+};
 
 setInterval(() => {
   const now = Date.now();
-  const keysToRemove: string[] = [];
-  activeBuckets.forEach((bucket, key) => {
-    if (now >= bucket.endTime) {
-      publishCompletedBucket(bucket);
-      keysToRemove.push(key);
+  const expired: string[] = [];
+  active.forEach((b, k) => {
+    if (now >= b.endTime) {
+      pubRedis.publish('new_candles', JSON.stringify({
+        symbol: b.symbol,
+        interval: b.interval,
+        openTime: b.startTime,
+        closeTime: b.endTime - 1,
+        open: b.open,
+        high: b.high,
+        low:  b.low,
+        close: b.close,
+        volume: b.volume,
+        trades: b.tradeCount,
+      }));
+      commit(b);
+      expired.push(k);
     }
   });
-  keysToRemove.forEach(key => activeBuckets.delete(key));
-}, 1000);
+  expired.forEach(k => active.delete(k));
+}, 1_000);
 
-redis.subscribe('trades', (message) => {
+setInterval(() => { if (batch.length) void flushBatch(); }, BATCH_TIMEOUT);
+
+await subRedis.subscribe('trades', payload => {
   try {
-    const trade = JSON.parse(message);
-    Object.keys(intervals).forEach(interval => {
-      const bucketKey = getBucketKey(trade.symbol, trade.ts, interval);
-      if (!bucketKey) return;
-      
-      if (activeBuckets.has(bucketKey)) {
-        updateBucket(activeBuckets.get(bucketKey), trade);
-      } else {
-        const newBucket = createNewBucket(trade, interval);
-        if (newBucket) {
-          activeBuckets.set(bucketKey, newBucket);
-        }
-      }
-    });
-  } catch (error) {
-    console.error('❌ OHLCV error:', error);
-  }
+    const t = JSON.parse(payload);
+    for (const i of Object.keys(intervals)) {
+      const k = key(t.symbol, t.ts, i);
+      if (!k) continue;
+      active.has(k)
+        ? update(active.get(k)!, t)
+        : (newBucket(t, i) && active.set(k, newBucket(t, i)!));
+    }
+  } catch {}
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
+  if (batch.length) await flushBatch();
   ws.close();
-  redis.quit();
+  await Promise.all([subRedis.quit(), pubRedis.quit(), prismaClient.$disconnect()]);
   process.exit(0);
 });
-
-console.log('📈 Multi-interval OHLCV Builder started');

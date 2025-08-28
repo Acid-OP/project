@@ -1,7 +1,8 @@
 import express from "express";
-import { supabaseDb, timescaleDb } from '@repo/db';
+import { prismaClient } from '@repo/db/client'; 
 import { createClient } from 'redis';
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const app = express();
@@ -40,11 +41,12 @@ app.get('/test/trades', (req, res) => {
   });
 });
 
+// 👥 USER ENDPOINTS - All go to 'users' table
 app.post("/signup", async (req, res) => {
   const { email, password, username } = req.body;
 
   try {
-    const existingUser = await supabaseDb.user.findUnique({
+    const existingUser = await prismaClient.user.findUnique({
       where: { email },
     });
 
@@ -52,7 +54,7 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    const user = await supabaseDb.user.create({
+    const user = await prismaClient.user.create({
       data: { email, password, username }, 
     });
 
@@ -67,7 +69,7 @@ app.post("/signin", async (req, res) => {
   const { email, password, username } = req.body;
 
   try {
-    const user = await supabaseDb.user.findUnique({
+    const user = await prismaClient.user.findUnique({
       where: { email },
     });
 
@@ -84,11 +86,46 @@ app.post("/signin", async (req, res) => {
 
 app.get("/users", async (req, res) => {
   try {
-    const users = await supabaseDb.user.findMany();
+    const users = await prismaClient.user.findMany();
     res.json(users);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error fetching users" });
+  }
+});
+
+app.get("/api/candles/:symbol/:interval", async (req, res) => {
+  const { symbol, interval } = req.params;
+  const { limit = 100 } = req.query;
+
+  try {
+    const candles = await prismaClient.ohlcvCandle.findMany({
+      where: {
+        symbol: symbol.toUpperCase(),
+        interval: interval
+      },
+      orderBy: { openTime: 'desc' },
+      take: parseInt(limit as string)
+    });
+
+    res.json({
+      symbol: symbol.toUpperCase(),
+      interval,
+      count: candles.length,
+      candles: candles.map(c => ({
+        openTime: c.openTime.toString(),
+        closeTime: c.closeTime.toString(),
+        open: c.open.toString(),
+        high: c.high.toString(),
+        low: c.low.toString(),
+        close: c.close.toString(),
+        volume: c.volume.toString(),
+        trades: c.trades
+      }))
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching candles" });
   }
 });
 
