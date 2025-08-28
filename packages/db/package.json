@@ -1,24 +1,23 @@
 {
   "name": "@repo/db",
   "version": "1.0.0",
-  "main": "index.js",
-    "exports": {
-    "./client" : "./src/index.ts"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    }
   },
   "scripts": {
     "db:generate": "prisma generate --schema=prisma/supabase.prisma && prisma generate --schema=prisma/timescale.prisma",
     "db:supabase:migrate": "prisma migrate dev --schema=prisma/supabase.prisma",
     "db:timescale:migrate": "prisma migrate dev --schema=prisma/timescale.prisma",
     "db:studio:supabase": "prisma studio --schema=prisma/supabase.prisma",
-    "db:studio:timescale": "prisma studio --schema=prisma/timescale.prisma"
+    "db:studio:timescale": "prisma studio --schema=prisma/timescale.prisma",
+    "build": "tsc"
   },
-  "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@prisma/client": "6.13.0"
   }

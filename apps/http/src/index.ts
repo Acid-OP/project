@@ -1,8 +1,9 @@
 import express from "express";
-import { prismaClient } from "@repo/db/client";
+import { supabaseDb, timescaleDb } from '@repo/db';
 import { createClient } from 'redis';
 import dotenv from "dotenv";
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 const redis = createClient();
@@ -43,7 +44,7 @@ app.post("/signup", async (req, res) => {
   const { email, password, username } = req.body;
 
   try {
-    const existingUser = await prismaClient.user.findUnique({
+    const existingUser = await supabaseDb.user.findUnique({
       where: { email },
     });
 
@@ -51,7 +52,7 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    const user = await prismaClient.user.create({
+    const user = await supabaseDb.user.create({
       data: { email, password, username }, 
     });
 
@@ -66,7 +67,7 @@ app.post("/signin", async (req, res) => {
   const { email, password, username } = req.body;
 
   try {
-    const user = await prismaClient.user.findUnique({
+    const user = await supabaseDb.user.findUnique({
       where: { email },
     });
 
@@ -83,7 +84,7 @@ app.post("/signin", async (req, res) => {
 
 app.get("/users", async (req, res) => {
   try {
-    const users = await prismaClient.user.findMany();
+    const users = await supabaseDb.user.findMany();
     res.json(users);
   } catch (err) {
     console.error(err);
