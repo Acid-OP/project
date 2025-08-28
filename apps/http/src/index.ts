@@ -1,13 +1,46 @@
 import express from "express";
 import { prismaClient } from "@repo/db/client";
+import { createClient } from 'redis';
 import dotenv from "dotenv";
-
 dotenv.config();
 const app = express();
 app.use(express.json());
+const redis = createClient();
+
+redis.connect().then(() => {
+  console.log('✅ HTTP server connected to Redis');
+}).catch((error) => {
+  console.error('❌ Redis connection failed:', error);
+});
+
+let recentTrades: any[] = [];
+
+redis.subscribe('trades', (message) => {
+  const trade = JSON.parse(message);
+  recentTrades.unshift(trade);
+  recentTrades = recentTrades.slice(0, 50);
+});
+
+app.get('/test/trades', (req, res) => {
+  const symbolFilter = req.query.symbol as string;
+  
+  let trades = recentTrades;
+  if (symbolFilter) {
+    trades = recentTrades.filter(t => t.symbol.toLowerCase().includes(symbolFilter.toLowerCase()));
+  }
+
+  res.json({
+    status: 'connected',
+    totalTrades: recentTrades.length,
+    filteredTrades: trades.length,
+    latestTrades: trades.slice(0, 10),
+    symbols: [...new Set(recentTrades.map(t => t.symbol))],
+    lastUpdate: recentTrades[0]?.ts ? new Date(recentTrades[0].ts).toISOString() : null
+  });
+});
 
 app.post("/signup", async (req, res) => {
-  const { email, password ,username } = req.body;
+  const { email, password, username } = req.body;
 
   try {
     const existingUser = await prismaClient.user.findUnique({
@@ -19,7 +52,7 @@ app.post("/signup", async (req, res) => {
     }
 
     const user = await prismaClient.user.create({
-      data: { email, password , username }, 
+      data: { email, password, username }, 
     });
 
     res.json({ message: "User created successfully", user });
@@ -30,7 +63,7 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/signin", async (req, res) => {
-  const { email, password , username } = req.body;
+  const { email, password, username } = req.body;
 
   try {
     const user = await prismaClient.user.findUnique({
@@ -58,4 +91,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
-app.listen(process.env.HTTP_PORT!);
+const PORT = process.env.HTTP_PORT!;
+app.listen(PORT, () => {
+  console.log(`🚀 HTTP server running on port ${PORT}`);
+});
