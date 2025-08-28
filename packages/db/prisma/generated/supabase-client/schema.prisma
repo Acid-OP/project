@@ -1,0 +1,60 @@
+// prisma/supabase.prisma
+generator supabaseClient {
+  provider = "prisma-client-js"
+  output   = "./generated/supabase-client"
+}
+
+datasource supabaseDb {
+  provider = "postgresql"
+  url      = env("SUPABASE_DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wallets Wallet[]
+  orders  Order[]
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  asset     String
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  userId    String
+  side      String
+  type      String
+  price     Float?
+  quantity  Float
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  trades Trade[]
+}
+
+model Trade {
+  id        String   @id @default(uuid())
+  orderId   String
+  price     Float
+  quantity  Float
+  side      String
+  fee       Float?
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}

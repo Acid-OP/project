@@ -6,7 +6,11 @@
     "./client" : "./src/index.ts"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:generate": "prisma generate --schema=prisma/supabase.prisma && prisma generate --schema=prisma/timescale.prisma",
+    "db:supabase:migrate": "prisma migrate dev --schema=prisma/supabase.prisma",
+    "db:timescale:migrate": "prisma migrate dev --schema=prisma/timescale.prisma",
+    "db:studio:supabase": "prisma studio --schema=prisma/supabase.prisma",
+    "db:studio:timescale": "prisma studio --schema=prisma/timescale.prisma"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*"
