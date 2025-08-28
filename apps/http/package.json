@@ -10,8 +10,10 @@
   "dependencies": {
     "@repo/db": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/redis": "^4.0.11",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "redis": "^5.8.2"

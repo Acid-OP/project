@@ -1,12 +1,19 @@
 import express from "express";
-import { prismaClient } from '@repo/db/client'; 
+import { prismaClient } from '@repo/db/client';
 import { createClient } from 'redis';
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
+
 const redis = createClient();
 
 redis.connect().then(() => {
@@ -23,41 +30,23 @@ redis.subscribe('trades', (message) => {
   recentTrades = recentTrades.slice(0, 50);
 });
 
-app.get('/test/trades', (req, res) => {
-  const symbolFilter = req.query.symbol as string;
-  
-  let trades = recentTrades;
-  if (symbolFilter) {
-    trades = recentTrades.filter(t => t.symbol.toLowerCase().includes(symbolFilter.toLowerCase()));
-  }
-
-  res.json({
-    status: 'connected',
-    totalTrades: recentTrades.length,
-    filteredTrades: trades.length,
-    latestTrades: trades.slice(0, 10),
-    symbols: [...new Set(recentTrades.map(t => t.symbol))],
-    lastUpdate: recentTrades[0]?.ts ? new Date(recentTrades[0].ts).toISOString() : null
-  });
-});
-
-// 👥 USER ENDPOINTS - All go to 'users' table
+// USER ENDPOINTS
 app.post("/signup", async (req, res) => {
   const { email, password, username } = req.body;
-
+  
   try {
     const existingUser = await prismaClient.user.findUnique({
       where: { email },
     });
-
+    
     if (existingUser) {
       return res.status(400).json({ error: "User already exists" });
     }
-
+    
     const user = await prismaClient.user.create({
-      data: { email, password, username }, 
+      data: { email, password, username },
     });
-
+    
     res.json({ message: "User created successfully", user });
   } catch (err) {
     console.error(err);
@@ -67,16 +56,16 @@ app.post("/signup", async (req, res) => {
 
 app.post("/signin", async (req, res) => {
   const { email, password, username } = req.body;
-
+  
   try {
     const user = await prismaClient.user.findUnique({
       where: { email },
     });
-
+    
     if (!user || user.password !== password || user.username !== username) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
-
+    
     res.json({ message: "Signin successful", user });
   } catch (err) {
     console.error(err);
@@ -96,40 +85,116 @@ app.get("/users", async (req, res) => {
 
 app.get("/api/candles/:symbol/:interval", async (req, res) => {
   const { symbol, interval } = req.params;
-  const { limit = 100 } = req.query;
-
+  
+  // ✅ Fix 1: Properly type and validate query parameters
+  const limit = typeof req.query.limit === 'string' ? req.query.limit : '100';
+  const startTime = typeof req.query.startTime === 'string' ? req.query.startTime : undefined;
+  const endTime = typeof req.query.endTime === 'string' ? req.query.endTime : undefined;
+  
+  // Validate interval
+  const validIntervals = ['1m', '5m', '15m', '1h', '4h'];
+  if (!validIntervals.includes(interval)) {
+    return res.status(400).json({ error: "Invalid interval" });
+  }
+  
+  const limitNum = Math.min(parseInt(limit) || 100, 1000);
+  
   try {
-    const candles = await prismaClient.ohlcvCandle.findMany({
-      where: {
-        symbol: symbol.toUpperCase(),
-        interval: interval
-      },
-      orderBy: { openTime: 'desc' },
-      take: parseInt(limit as string)
-    });
-
-    res.json({
+    console.log(`🔍 Fetching candles for ${symbol.toUpperCase()} ${interval}`);
+    
+    // ✅ Fix 2: Properly type whereClause with Prisma types
+    const whereClause: {
+      symbol: string;
+      interval: string;
+      openTime?: {
+        gte?: bigint;
+        lte?: bigint;
+      };
+    } = {
       symbol: symbol.toUpperCase(),
-      interval,
-      count: candles.length,
-      candles: candles.map(c => ({
-        openTime: c.openTime.toString(),
-        closeTime: c.closeTime.toString(),
-        open: c.open.toString(),
-        high: c.high.toString(),
-        low: c.low.toString(),
-        close: c.close.toString(),
-        volume: c.volume.toString(),
-        trades: c.trades
-      }))
+      interval: interval
+    };
+    
+    // Add date filtering if provided
+    if (startTime || endTime) {
+      whereClause.openTime = {};
+      if (startTime) {
+        whereClause.openTime.gte = BigInt(startTime);
+      }
+      if (endTime) {
+        whereClause.openTime.lte = BigInt(endTime);
+      }
+    }
+    
+    const candles = await prismaClient.ohlcvCandle.findMany({
+      where: whereClause,
+      orderBy: { openTime: 'asc' }, // ✅ Fix 3: Correct order for charts
+      take: limitNum
     });
+    
+    console.log(`📊 Found ${candles.length} candles in database`);
+    
+    if (candles.length === 0) {
+      console.log(`⚠️ No candles found for ${symbol.toUpperCase()} ${interval}`);
+      return res.json({ s: "no_data" });
+    }
+    
+    // ✅ Fix 4: TradingView compatible response format
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json({
+      s: "ok",
+      t: candles.map(c => Math.floor(Number(c.openTime) / 1000)), // Unix timestamps
+      o: candles.map(c => parseFloat(c.open.toString())), // Open prices
+      h: candles.map(c => parseFloat(c.high.toString())), // High prices  
+      l: candles.map(c => parseFloat(c.low.toString())), // Low prices
+      c: candles.map(c => parseFloat(c.close.toString())), // Close prices
+      v: candles.map(c => parseFloat(c.volume.toString())) // Volume
+    });
+    
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error fetching candles" });
+    console.error('❌ Error fetching candles:', err);
+    res.status(500).json({ s: "error", errmsg: "Database error" });
   }
 });
 
-const PORT = process.env.HTTP_PORT!;
+
+// DEBUG ENDPOINT - Check what's in the database
+app.get("/api/debug/candles", async (req, res) => {
+  try {
+    const symbols = await prismaClient.ohlcvCandle.findMany({
+      select: { 
+        symbol: true, 
+        interval: true,
+        openTime: true,
+        open: true,
+        high: true,
+        low: true,
+        close: true
+      },
+      take: 10,
+      orderBy: { openTime: 'desc' }
+    });
+    
+    res.json({
+      message: "Recent candles from database",
+      count: symbols.length,
+      data: symbols
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching debug data" });
+  }
+});
+
+// RECENT TRADES ENDPOINT
+app.get("/api/trades", (req, res) => {
+  res.json({
+    trades: recentTrades,
+    count: recentTrades.length
+  });
+});
+
+const PORT = process.env.HTTP_PORT;
 app.listen(PORT, () => {
   console.log(`🚀 HTTP server running on port ${PORT}`);
 });
