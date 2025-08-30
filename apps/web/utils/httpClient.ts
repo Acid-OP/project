@@ -29,8 +29,7 @@ export async function getTrades(market: string): Promise<Trade[]> {
 }
 
 export async function getKlines(market: string, interval: string, startTime: number, endTime: number): Promise<KLine[]> {
-    // Get K-Lines for the given market symbol
-    // Note: Backpack API uses seconds for timestamps, not milliseconds
+
     const response = await axios.get(`${BASE_URL}?endpoint=/klines&symbol=${market}&interval=${interval}&startTime=${startTime}&endTime=${endTime}`);
     
     const data: KLine[] = response.data;

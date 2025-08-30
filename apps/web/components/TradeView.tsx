@@ -16,7 +16,7 @@ export function TradeView({
     const init = async () => {
       let klineData: KLine[] = [];
       try {
-        klineData = await getKlines(market, "1h", Math.floor((new Date().getTime() - 1000 * 60 * 60 * 24 * 7) / 1000), Math.floor(new Date().getTime() / 1000)); 
+        klineData = await getKlines(market, "1h", Math.floor((new Date().getTime() - 1000 * 60 * 60 * 24 * 30) / 1000), Math.floor(new Date().getTime() / 1000)); 
       } catch (e) { }
 
       if (chartRef) {

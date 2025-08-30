@@ -106,17 +106,8 @@ export function SwapUI({ market }: {market: string}) {
                             }} />
                         </div>
                     </div>
-                    <button 
-                        type="button" 
-                        className={`font-semibold focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 ${
-                            activeTab === 'buy' 
-                                ? 'bg-greenPrimaryButtonBackground text-greenPrimaryButtonText' 
-                                : 'bg-redPrimaryButtonBackground text-redPrimaryButtonText'
-                        } active:scale-98`} 
-                        data-rac=""
-                    >
-                        {activeTab === 'buy' ? 'Buy' : 'Sell'}
-                    </button>
+                   <button type="button" className={`font-semibold focus:ring-2 focus:ring-blue-200 focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 transition-all duration-200 transform hover:scale-105 active:scale-95 ${activeTab === 'buy'? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}data-rac="">{activeTab === 'buy' ? 'Buy' : 'Sell'}
+                   </button>
                     <div className="flex justify-between flex-row mt-1">
                         <div className="flex flex-row gap-2">
                             <div className="flex items-center">
@@ -163,16 +154,16 @@ function MarketButton({ type, setType }: { type: string, setType: (type: string)
 }
 
 function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
-    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center text-white border-b-2 p-4 ${activeTab === 'buy' ? 'border-b-greenBorder bg-greenBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('buy')}>
-        <p className="text-center text-sm text-white font-semibold text-greenText">
+    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center text-white border-b-2 p-4 transition-all duration-200 ${activeTab === 'buy' ? 'border-b-green-500 bg-green-500/10' : 'border-b-slate-600 hover:border-b-slate-400'}`} onClick={() => setActiveTab('buy')}>
+        <p className="text-center text-sm text-white font-semibold">
             Buy
         </p>
     </div>
 }
 
 function SellButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
-    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 ${activeTab === 'sell' ? 'border-b-redBorder bg-redBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('sell')}>
-        <p className="text-center text-sm text-white font-semibold text-redText">
+    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 transition-all duration-200 ${activeTab === 'sell' ? 'border-b-red-500 bg-red-500/10' : 'border-b-slate-600 hover:border-b-slate-400'}`} onClick={() => setActiveTab('sell')}>
+        <p className="text-center text-sm text-white font-semibold">
             Sell
         </p>
     </div>
