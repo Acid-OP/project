@@ -29,7 +29,12 @@ export const MarketBar = ({market}: {market: string}) => {
                                     <p className="font-medium text-xs text-slate-400 text-sm">24H Low</p>
                                     <p className="text-sm font-medium tabular-nums leading-5 text-sm ">{ticker?.low}</p>
                                 </div>
-                            <button type="button" className="font-medium transition-opacity hover:opacity-80 hover:cursor-pointer text-base text-left" data-rac="">
+                            <button 
+                                type="button" 
+                                className="font-medium transition-opacity hover:opacity-80 hover:cursor-pointer text-base text-left" 
+                                data-rac=""
+                                suppressHydrationWarning
+                            >
                                 <div className="flex flex-col">
                                     <p className="font-medium text-xs text-slate-400 text-sm">24H Volume</p>
                                     <p className="mt-1 text-sm font-medium tabular-nums leading-5 text-sm ">{ticker?.volume}
@@ -49,7 +54,12 @@ function Ticker({market}: {market: string}) {
             <img alt="SOL Logo" loading="lazy" decoding="async" data-nimg="1" className="z-10 rounded-full h-6 w-6 mt-4 outline-baseBackgroundL1"  src="/sol.webp" />
             <img alt="USDC Logo" loading="lazy"decoding="async" data-nimg="1" className="h-6 w-6 -ml-2 mt-4 rounded-full" src="/usdc.webp" />
         </div>
-    <button type="button" className="react-aria-Button" data-rac="">
+    <button 
+        type="button" 
+        className="react-aria-Button" 
+        data-rac=""
+        suppressHydrationWarning
+    >
         <div className="flex items-center justify-between flex-row cursor-pointer rounded-lg p-3 hover:opacity-80">
             <div className="flex items-center flex-row gap-2 undefined">
                 <div className="flex flex-row relative">

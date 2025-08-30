@@ -1,14 +1,29 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function SwapUI({ market }: {market: string}) {
     const [amount, setAmount] = useState('');
     const [activeTab, setActiveTab] = useState('buy');
     const [type, setType] = useState('limit');
-    
-    // Add state for the price and quantity inputs
-    const [price, setPrice] = useState('134.38');
-    const [quantity, setQuantity] = useState('123');
+    const [price, setPrice] = useState('');
+    const [quantity, setQuantity] = useState('');
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+        // Set initial values after hydration
+        if (type === 'limit') {
+            setPrice('134.38');
+            setQuantity('123');
+        }
+    }, [type]);
+
+    // Don't render until client-side to avoid any hydration issues
+    if (!isClient) {
+        return <div className="h-[400px] flex items-center justify-center">
+            <div className="animate-pulse text-slate-400">Loading...</div>
+        </div>;
+    }
 
     return <div>
         <div className="flex flex-col">
@@ -72,24 +87,36 @@ export function SwapUI({ market }: {market: string}) {
                             </div>
                         </div>
                         <div className="flex justify-end flex-row">
-                            <p className="font-medium pr-2 text-xs text-baseTextMedEmphasis">≈ 0.00 USDC</p>
+                            <p className="font-medium pr-2 text-xs text-baseTextMedEmphasis">
+                                ≈ {price && quantity ? (parseFloat(price) * parseFloat(quantity)).toFixed(2) : '0.00'} USDC
+                            </p>
                         </div>
                         <div className="flex justify-center flex-row mt-2 gap-3">
-                            <div className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3">
-                                25%
-                            </div>
-                            <div className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3">
-                                50%
-                            </div>
-                            <div className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3">
-                                75%
-                            </div>
-                            <div className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3">
-                                Max
-                            </div>
+                            <PercentageButton percentage="25%" onClick={() => {
+                                setQuantity((36.94 * 0.25).toFixed(2));
+                            }} />
+                            <PercentageButton percentage="50%" onClick={() => {
+                                setQuantity((36.94 * 0.50).toFixed(2));
+                            }} />
+                            <PercentageButton percentage="75%" onClick={() => {
+                                setQuantity((36.94 * 0.75).toFixed(2));
+                            }} />
+                            <PercentageButton percentage="Max" onClick={() => {
+                                setQuantity('36.94');
+                            }} />
                         </div>
                     </div>
-                    <button type="button" className="font-semibold  focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 bg-greenPrimaryButtonBackground text-greenPrimaryButtonText active:scale-98" data-rac="">Buy</button>
+                    <button 
+                        type="button" 
+                        className={`font-semibold focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 ${
+                            activeTab === 'buy' 
+                                ? 'bg-greenPrimaryButtonBackground text-greenPrimaryButtonText' 
+                                : 'bg-redPrimaryButtonBackground text-redPrimaryButtonText'
+                        } active:scale-98`} 
+                        data-rac=""
+                    >
+                        {activeTab === 'buy' ? 'Buy' : 'Sell'}
+                    </button>
                     <div className="flex justify-between flex-row mt-1">
                         <div className="flex flex-row gap-2">
                             <div className="flex items-center">
@@ -101,30 +128,41 @@ export function SwapUI({ market }: {market: string}) {
                                 <label className="ml-2 text-xs">IOC</label>
                             </div>
                         </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 }
 
-function LimitButton({ type, setType }: { type: string, setType: any }) {
+function PercentageButton({ percentage, onClick }: { percentage: string, onClick: () => void }) {
+    return (
+        <div 
+            className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3"
+            onClick={onClick}
+        >
+            {percentage}
+        </div>
+    );
+}
+
+function LimitButton({ type, setType }: { type: string, setType: (type: string) => void }) {
     return <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('limit')}>
-    <div className={`text-sm font-medium py-1 border-b-2 ${type === 'limit' ? "border-accentBlue text-baseTextHighEmphasis" : "border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
-        Limit
-    </div>
-</div>
-}
-
-function MarketButton({ type, setType }: { type: string, setType: any }) {
-    return  <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('market')}>
-    <div className={`text-sm font-medium py-1 border-b-2 ${type === 'market' ? "border-accentBlue text-baseTextHighEmphasis" : "border-b-2 border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"} `}>
-        Market
-    </div>
+        <div className={`text-sm font-medium py-1 border-b-2 ${type === 'limit' ? "border-accentBlue text-baseTextHighEmphasis" : "border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
+            Limit
+        </div>
     </div>
 }
 
-function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: any }) {
+function MarketButton({ type, setType }: { type: string, setType: (type: string) => void }) {
+    return <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('market')}>
+        <div className={`text-sm font-medium py-1 border-b-2 ${type === 'market' ? "border-accentBlue text-baseTextHighEmphasis" : "border-b-2 border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
+            Market
+        </div>
+    </div>
+}
+
+function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
     return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 ${activeTab === 'buy' ? 'border-b-greenBorder bg-greenBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('buy')}>
         <p className="text-center text-sm font-semibold text-greenText">
             Buy
@@ -132,7 +170,7 @@ function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTa
     </div>
 }
 
-function SellButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: any }) {
+function SellButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
     return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 ${activeTab === 'sell' ? 'border-b-redBorder bg-redBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('sell')}>
         <p className="text-center text-sm font-semibold text-redText">
             Sell

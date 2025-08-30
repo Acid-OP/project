@@ -1,8 +1,8 @@
 import { useParams } from "next/navigation";
-import { MarketBar } from "../components/MarketBar";
 import { SwapUI } from "../components/SwapUI";
 import { Depth } from "../components/depth/Depth.";
 import { TradeView } from "../components/TradeView";
+import { MarketBar } from "../components/MarketBar";
 
 export default function Home() {
 const market = "SOL_USDC";
@@ -21,7 +21,7 @@ const market = "SOL_USDC";
         <div className="w-[10px] flex-col border-slate-800 border-l"></div>
         <div>
             <div className="flex flex-col w-[250px]">
-                {/* <SwapUI market={market as string} /> */}
+                <SwapUI market={market as string} />
             </div>
         </div>
     </div>}
