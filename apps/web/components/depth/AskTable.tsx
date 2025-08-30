@@ -1,4 +1,3 @@
-
 export const AskTable = ({ asks }: { asks: [string, string][] }) => {
     let currentTotal = 0;
     const relevantAsks = asks.slice(0, 15);
@@ -32,7 +31,7 @@ function Ask({price, quantity, total, maxTotal}: {price: string, quantity: strin
         transition: "width 0.3s ease-in-out",
         }}
     ></div>
-    <div className="flex justify-between text-xs w-full">
+    <div className="flex justify-between text-white text-xs w-full">
         <div>
             {price}
         </div>

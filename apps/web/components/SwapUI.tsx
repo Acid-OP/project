@@ -39,22 +39,22 @@ export function SwapUI({ market }: {market: string}) {
                     </div>
                 </div>
                 <div className="flex flex-col px-3">
-                    <div className="flex flex-col flex-1 gap-3 text-baseTextHighEmphasis">
+                    <div className="flex flex-col flex-1 gap-3 text-white">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between flex-row">
-                                <p className="text-xs font-normal text-baseTextMedEmphasis">Available Balance</p>
-                                <p className="font-medium text-xs text-baseTextHighEmphasis">36.94 USDC</p>
+                                <p className="text-xs font-normal text-white">Available Balance</p>
+                                <p className="font-medium text-xs text-white">36.94 USDC</p>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
-                            <p className="text-xs font-normal text-baseTextMedEmphasis">
+                            <p className="text-xs font-normal text-white">
                                 Price
                             </p>
                             <div className="flex flex-col relative">
                                 <input 
                                     step="0.01" 
                                     placeholder="0" 
-                                    className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-[$text] placeholder-baseTextMedEmphasis ring-0 transition focus:border-accentBlue focus:ring-0" 
+                                    className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-white placeholder-white ring-0 transition focus:border-accentBlue focus:ring-0" 
                                     type="text" 
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
@@ -68,14 +68,14 @@ export function SwapUI({ market }: {market: string}) {
                         </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                        <p className="text-xs font-normal text-baseTextMedEmphasis">
+                        <p className="text-xs font-normal text-white">
                             Quantity
                         </p>
                         <div className="flex flex-col relative">
                             <input 
                                 step="0.01" 
                                 placeholder="0" 
-                                className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-[$text] placeholder-baseTextMedEmphasis ring-0 transition focus:border-accentBlue focus:ring-0" 
+                                className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-white placeholder-white ring-0 transition focus:border-accentBlue focus:ring-0" 
                                 type="text" 
                                 value={quantity}
                                 onChange={(e) => setQuantity(e.target.value)}
@@ -87,7 +87,7 @@ export function SwapUI({ market }: {market: string}) {
                             </div>
                         </div>
                         <div className="flex justify-end flex-row">
-                            <p className="font-medium pr-2 text-xs text-baseTextMedEmphasis">
+                            <p className="font-medium pr-2 text-xs text-white">
                                 ≈ {price && quantity ? (parseFloat(price) * parseFloat(quantity)).toFixed(2) : '0.00'} USDC
                             </p>
                         </div>
@@ -121,11 +121,11 @@ export function SwapUI({ market }: {market: string}) {
                         <div className="flex flex-row gap-2">
                             <div className="flex items-center">
                                 <input className="form-checkbox rounded border border-solid border-baseBorderMed bg-base-950 font-light text-transparent shadow-none shadow-transparent outline-none ring-0 ring-transparent checked:border-baseBorderMed checked:bg-base-900 checked:hover:border-baseBorderMed focus:bg-base-900 focus:ring-0 focus:ring-offset-0 focus:checked:border-baseBorderMed cursor-pointer h-5 w-5" id="postOnly" type="checkbox" data-rac="" />
-                                <label className="ml-2 text-xs">Post Only</label>
+                                <label className="ml-2 text-white text-xs">Post Only</label>
                             </div>
                             <div className="flex items-center">
                                 <input className="form-checkbox rounded border border-solid border-baseBorderMed bg-base-950 font-light text-transparent shadow-none shadow-transparent outline-none ring-0 ring-transparent checked:border-baseBorderMed checked:bg-base-900 checked:hover:border-baseBorderMed focus:bg-base-900 focus:ring-0 focus:ring-offset-0 focus:checked:border-baseBorderMed cursor-pointer h-5 w-5" id="ioc" type="checkbox" data-rac="" />
-                                <label className="ml-2 text-xs">IOC</label>
+                                <label className="ml-2 text-white text-xs">IOC</label>
                             </div>
                         </div>
                     </div>
@@ -138,7 +138,7 @@ export function SwapUI({ market }: {market: string}) {
 function PercentageButton({ percentage, onClick }: { percentage: string, onClick: () => void }) {
     return (
         <div 
-            className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3"
+            className="flex items-center text-white justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3"
             onClick={onClick}
         >
             {percentage}
@@ -148,7 +148,7 @@ function PercentageButton({ percentage, onClick }: { percentage: string, onClick
 
 function LimitButton({ type, setType }: { type: string, setType: (type: string) => void }) {
     return <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('limit')}>
-        <div className={`text-sm font-medium py-1 border-b-2 ${type === 'limit' ? "border-accentBlue text-baseTextHighEmphasis" : "border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
+        <div className={`text-sm font-medium text-white py-1 border-b-2 ${type === 'limit' ? "border-accentBlue text-baseTextHighEmphasis" : "border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
             Limit
         </div>
     </div>
@@ -156,15 +156,15 @@ function LimitButton({ type, setType }: { type: string, setType: (type: string) 
 
 function MarketButton({ type, setType }: { type: string, setType: (type: string) => void }) {
     return <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('market')}>
-        <div className={`text-sm font-medium py-1 border-b-2 ${type === 'market' ? "border-accentBlue text-baseTextHighEmphasis" : "border-b-2 border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
+        <div className={`text-sm font-medium text-white py-1 border-b-2 ${type === 'market' ? "border-accentBlue text-baseTextHighEmphasis" : "border-b-2 border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
             Market
         </div>
     </div>
 }
 
 function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
-    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 ${activeTab === 'buy' ? 'border-b-greenBorder bg-greenBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('buy')}>
-        <p className="text-center text-sm font-semibold text-greenText">
+    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center text-white border-b-2 p-4 ${activeTab === 'buy' ? 'border-b-greenBorder bg-greenBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('buy')}>
+        <p className="text-center text-sm text-white font-semibold text-greenText">
             Buy
         </p>
     </div>
@@ -172,7 +172,7 @@ function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTa
 
 function SellButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
     return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 ${activeTab === 'sell' ? 'border-b-redBorder bg-redBackgroundTransparent' : 'border-b-baseBorderMed hover:border-b-baseBorderFocus'}`} onClick={() => setActiveTab('sell')}>
-        <p className="text-center text-sm font-semibold text-redText">
+        <p className="text-center text-sm text-white font-semibold text-redText">
             Sell
         </p>
     </div>
