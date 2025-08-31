@@ -10,8 +10,8 @@ export class SignalingManager {
     private id: number;
     private initialized: boolean = false;
 
-    private constructor(private signalingServerUrl?: string) {
-        this.ws = new WebSocket(signalingServerUrl || BASE_URL);
+    private constructor() {
+        this.ws = new WebSocket(BASE_URL);
         this.bufferedMessages = [];
         this.id = 1;
         this.init();
@@ -31,7 +31,6 @@ export class SignalingManager {
             if (this.callbacks[type]) {
                 this.callbacks[type].forEach(({ callback }) => {
                     if (type === "ticker") {
-                        callback(message.data.data);
                         const newTicker: Partial<Ticker> = {
                             lastPrice: message.data.c,
                             high: message.data.h,
@@ -43,14 +42,26 @@ export class SignalingManager {
                         console.log(newTicker);
                         callback(newTicker);
                    }
+                   if (type === "depth") {
+                   
+                            const updatedBids = message.data.b;
+                        const updatedAsks = message.data.a;
+                        let currentPrice;
+    if (updatedBids && updatedAsks && updatedBids.length > 0 && updatedAsks.length > 0) {
+        const bestBid = parseFloat(updatedBids[0][0]);
+        const bestAsk = parseFloat(updatedAsks[0][0]);
+        currentPrice = ((bestBid + bestAsk) / 2).toString();
+    }
+                        callback({ bids: updatedBids, asks: updatedAsks,price: currentPrice  })
+                   }
                 });
             }
         }
     }
 
-    public static getInstance(signalingServerUrl?: string) {
+    public static getInstance() {
         if (!this.instance)  {
-            this.instance = new SignalingManager(signalingServerUrl);
+            this.instance = new SignalingManager();
         }
         return this.instance;
     }
