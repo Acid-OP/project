@@ -17,86 +17,44 @@ export function Depth({ market }: {market: string}) {
             
             if (data.bids) {
                 setBids((originalBids) => {
-                    if (!originalBids) return data.bids?.filter((bid: [string, string]) => parseFloat(bid[1]) > 0) || [];
-                    let bidsAfterUpdate: [string, string][] = [...originalBids];
+                    if (!originalBids) return data.bids;
+                    const bidsAfterUpdate: [string, string][] = [...originalBids];
 
-                    for (let j = 0; j < (data.bids?.length || 0); j++) {
-                        const newBid = data.bids?.[j];
-                        if (!newBid) continue;
-                        
-                        const price = newBid[0];
-                        const size = newBid[1];
-                        
-                        // Find existing bid with same price
-                        const existingIndex = bidsAfterUpdate.findIndex(bid => bid[0] === price);
-                        
-                        if (parseFloat(size) === 0) {
-                            // Remove bid if size is 0
-                            if (existingIndex !== -1) {
-                                bidsAfterUpdate.splice(existingIndex, 1);
-                            }
-                        } else {
-                            // Update existing bid or add new one
-                            if (existingIndex !== -1 && bidsAfterUpdate[existingIndex]) {
-                                bidsAfterUpdate[existingIndex]![1] = size;
-                            } else {
-                                bidsAfterUpdate.push([price, size]);
+                    for (let i = 0; i < bidsAfterUpdate.length; i++) {
+                        for (let j = 0; j < data.bids!.length; j++) {
+                            if (bidsAfterUpdate[i]![0] === data.bids![j]![0]) {
+                                bidsAfterUpdate[i]![1] = data.bids![j]![1];
+                                 if (parseFloat(bidsAfterUpdate[i]![1]) === 0) {
+                        bidsAfterUpdate.splice(i, 1);
+                        i--; // adjust index after removal
+                    }
+                                break;
                             }
                         }
                     }
-                    
-                    // Sort bids in descending order (highest price first)
-                    return bidsAfterUpdate.sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+                    return bidsAfterUpdate; 
                 });
             }
 
             if (data.asks) {
                 setAsks((originalAsks) => {
-                    if (!originalAsks) return data.asks?.filter((ask: [string, string]) => parseFloat(ask[1]) > 0) || [];
-                    let asksAfterUpdate: [string, string][] = [...originalAsks];
+                    if (!originalAsks) return data.asks;
+                    const asksAfterUpdate: [string, string][] = [...originalAsks];
 
-                    for (let j = 0; j < (data.asks?.length || 0); j++) {
-                        const newAsk = data.asks?.[j];
-                        if (!newAsk) continue;
-                        
-                        const price = newAsk[0];
-                        const size = newAsk[1];
-                        
-                        // Find existing ask with same price
-                        const existingIndex = asksAfterUpdate.findIndex(ask => ask[0] === price);
-                        
-                        if (parseFloat(size) === 0) {
-                            // Remove ask if size is 0
-                            if (existingIndex !== -1) {
-                                asksAfterUpdate.splice(existingIndex, 1);
-                            }
-                        } else {
-                            // Update existing ask or add new one
-                            if (existingIndex !== -1 && asksAfterUpdate[existingIndex]) {
-                                asksAfterUpdate[existingIndex]![1] = size;
-                            } else {
-                                asksAfterUpdate.push([price, size]);
+                    for (let i = 0; i < asksAfterUpdate.length; i++) {
+                        for (let j = 0; j < data.asks!.length; j++) {
+                            if (asksAfterUpdate[i]![0] === data.asks![j]![0]) {
+                                asksAfterUpdate[i]![1] = data.asks![j]![1];
+                                 if (parseFloat(asksAfterUpdate[i]![1]) === 0) {
+                        asksAfterUpdate.splice(i, 1);
+                        i--; // adjust index after removal
+                    }
+                                break;
                             }
                         }
                     }
-                    
-                    // Sort asks in ascending order (lowest price first)
-                    return asksAfterUpdate.sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+                    return asksAfterUpdate; 
                 });
-            }
-
-            // Update price from best bid/ask after updates
-            if (data.bids && data.asks && data.bids.length > 0 && data.asks.length > 0) {
-                // Filter out zero quantities before calculating price
-                const validBids = data.bids.filter((bid: [string, string]) => parseFloat(bid[1]) > 0);
-                const validAsks = data.asks.filter((ask: [string, string]) => parseFloat(ask[1]) > 0);
-                
-                if (validBids.length > 0 && validAsks.length > 0) {
-                    const bestBid = parseFloat(validBids[0][0]);
-                    const bestAsk = parseFloat(validAsks[0][0]);
-                    const midPrice = ((bestBid + bestAsk) / 2).toFixed(2);
-                    setPrice(midPrice);
-                }
             }
         }, `DEPTH-${market}`);
         
@@ -106,9 +64,8 @@ export function Depth({ market }: {market: string}) {
         });
 
         getDepth(market).then(d => {    
-            // Filter out zero quantities from initial data
-            setBids(d.bids?.filter((bid: [string, string]) => parseFloat(bid[1]) > 0).reverse() || []);
-            setAsks(d.asks?.filter((ask: [string, string]) => parseFloat(ask[1]) > 0) || []);
+            setBids(d.bids.reverse());
+            setAsks(d.asks);
         }).catch(error => {
             console.error("Error fetching depth:", error);
         });
@@ -129,7 +86,7 @@ export function Depth({ market }: {market: string}) {
             });
             SignalingManager.getInstance().deRegisterCallback("depth", `DEPTH-${market}`);
         }
-    }, [market])
+    }, [market]) // Added market to dependency array
     
     return (
         <div>

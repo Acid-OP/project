@@ -43,18 +43,10 @@ export class SignalingManager {
                         callback(newTicker);
                    }
                    if (type === "depth") {
-                   
-                            const updatedBids = message.data.b;
-                        const updatedAsks = message.data.a;
-                        let currentPrice;
-    if (updatedBids && updatedAsks && updatedBids.length > 0 && updatedAsks.length > 0) {
-        const bestBid = parseFloat(updatedBids[0][0]);
-        const bestAsk = parseFloat(updatedAsks[0][0]);
-        currentPrice = ((bestBid + bestAsk) / 2).toString();
-    }
-                        callback({ bids: updatedBids, asks: updatedAsks,price: currentPrice  })
-                   }
-                });
+                    const updatedBids = message.data.b;
+                    const updatedAsks = message.data.a;
+                    callback({ bids: updatedBids, asks: updatedAsks })
+                }})
             }
         }
     }

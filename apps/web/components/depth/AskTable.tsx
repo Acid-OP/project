@@ -2,7 +2,11 @@ export const AskTable = ({ asks }: { asks: [string, string][] }) => {
     let currentTotal = 0;
     const relevantAsks = asks.slice(0, 15);
     relevantAsks.reverse();
-    const asksWithTotal: [string, string, number][] = relevantAsks.map(([price, quantity]) => [price, quantity, currentTotal += Number(quantity)]);
+    let asksWithTotal: [string, string , number] [] = [];
+    for(let i=relevantAsks.length -1 ;i>=0; i--) {
+        const [price , quantity] = relevantAsks[i]!;
+        asksWithTotal.push([price, quantity, currentTotal += Number(quantity)]);    
+    }
     const maxTotal = relevantAsks.reduce((acc, [_, quantity]) => acc + Number(quantity), 0);
     asksWithTotal.reverse();
 
