@@ -7,53 +7,77 @@ import { BidTable } from "./Bidtable";
 import { SignalingManager } from "../../utils/SignallingManager";
 
 export function Depth({ market }: {market: string}) {
-    const [bids, setBids] = useState<[string, string][]>();
-    const [asks, setAsks] = useState<[string, string][]>();
+    const [bids, setBids] = useState<[string, string][]>([]);
+    const [asks, setAsks] = useState<[string, string][]>([]);
     const [price, setPrice] = useState<string>();
 
     useEffect(() => {
         SignalingManager.getInstance().registerCallback("depth", (data: any) => {
-            if (!data) return;
+            if (!data || (!data.bids && !data.asks)) return;
             
-            if (data.bids) {
+            if (data.bids && data.bids.length > 0) {
                 setBids((originalBids) => {
-                    if (!originalBids) return data.bids;
-                    const bidsAfterUpdate: [string, string][] = [...originalBids];
-
-                    for (let i = 0; i < bidsAfterUpdate.length; i++) {
-                        for (let j = 0; j < data.bids!.length; j++) {
-                            if (bidsAfterUpdate[i]![0] === data.bids![j]![0]) {
-                                bidsAfterUpdate[i]![1] = data.bids![j]![1];
-                                 if (parseFloat(bidsAfterUpdate[i]![1]) === 0) {
-                        bidsAfterUpdate.splice(i, 1);
-                        i--; // adjust index after removal
-                    }
-                                break;
+                    const updatedBids = [...originalBids];
+                    data.bids.forEach(([updatePrice, updateQuantity]: [string, string]) => {
+                        const priceFloat = parseFloat(updatePrice);
+                        const quantityFloat = parseFloat(updateQuantity);
+                        
+                        // Find existing price level
+                        const existingIndex = updatedBids.findIndex(([price]) => 
+                            parseFloat(price) === priceFloat
+                        );
+                        
+                        if (quantityFloat === 0) {
+                            // Remove price level if quantity is 0
+                            if (existingIndex !== -1) {
+                                updatedBids.splice(existingIndex, 1);
+                            }
+                        } else {
+                            // Update or add price level
+                            if (existingIndex !== -1) {
+                                updatedBids[existingIndex] = [updatePrice, updateQuantity];
+                            } else {
+                                updatedBids.push([updatePrice, updateQuantity]);
                             }
                         }
-                    }
-                    return bidsAfterUpdate; 
+                    });
+                    
+                    // Sort bids by price (highest first)
+                    return updatedBids.sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
                 });
             }
 
-            if (data.asks) {
+            if (data.asks && data.asks.length > 0) {
                 setAsks((originalAsks) => {
-                    if (!originalAsks) return data.asks;
-                    const asksAfterUpdate: [string, string][] = [...originalAsks];
-
-                    for (let i = 0; i < asksAfterUpdate.length; i++) {
-                        for (let j = 0; j < data.asks!.length; j++) {
-                            if (asksAfterUpdate[i]![0] === data.asks![j]![0]) {
-                                asksAfterUpdate[i]![1] = data.asks![j]![1];
-                                 if (parseFloat(asksAfterUpdate[i]![1]) === 0) {
-                        asksAfterUpdate.splice(i, 1);
-                        i--; // adjust index after removal
-                    }
-                                break;
+                    const updatedAsks = [...originalAsks];
+                    
+                    // Apply each ask update
+                    data.asks.forEach(([updatePrice, updateQuantity]: [string, string]) => {
+                        const priceFloat = parseFloat(updatePrice);
+                        const quantityFloat = parseFloat(updateQuantity);
+                        
+                        // Find existing price level
+                        const existingIndex = updatedAsks.findIndex(([price]) => 
+                            parseFloat(price) === priceFloat
+                        );
+                        
+                        if (quantityFloat === 0) {
+                            // Remove price level if quantity is 0
+                            if (existingIndex !== -1) {
+                                updatedAsks.splice(existingIndex, 1);
+                            }
+                        } else {
+                            // Update or add price level
+                            if (existingIndex !== -1) {
+                                updatedAsks[existingIndex] = [updatePrice, updateQuantity];
+                            } else {
+                                updatedAsks.push([updatePrice, updateQuantity]);
                             }
                         }
-                    }
-                    return asksAfterUpdate; 
+                    });
+                    
+                    // Sort asks by price (lowest first)
+                    return updatedAsks.sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
                 });
             }
         }, `DEPTH-${market}`);
@@ -63,20 +87,20 @@ export function Depth({ market }: {market: string}) {
             "params": [`depth.200ms.${market}`]
         });
 
+        // Initialize order book with snapshot
         getDepth(market).then(d => {    
-            setBids(d.bids.reverse());
-            setAsks(d.asks);
+            setBids(d.bids.sort((a: [string, string], b: [string, string]) => 
+                parseFloat(b[0]) - parseFloat(a[0])
+            ));
+            setAsks(d.asks.sort((a: [string, string], b: [string, string]) => 
+                parseFloat(a[0]) - parseFloat(b[0])
+            ));
         }).catch(error => {
             console.error("Error fetching depth:", error);
         });
 
         getTicker(market).then(t => setPrice(t.lastPrice)).catch(error => {
             console.error("Error fetching ticker:", error);
-        });
-        
-        // @ts-ignore
-        getTrades(market).then(t => setPrice(t[0].price)).catch(error => {
-            console.error("Error fetching trades:", error);
         });
 
         return () => {
@@ -86,14 +110,14 @@ export function Depth({ market }: {market: string}) {
             });
             SignalingManager.getInstance().deRegisterCallback("depth", `DEPTH-${market}`);
         }
-    }, [market]) // Added market to dependency array
+    }, [market])
     
     return (
         <div>
             <TableHeader />
-            {asks && <AskTable asks={asks} />}
+            {asks.length > 0 && <AskTable asks={asks} />}
             {price && <div className="text-white">{price}</div>}
-            {bids && <BidTable bids={bids} />}
+            {bids.length > 0 && <BidTable bids={bids} />}
         </div>
     );
 }
