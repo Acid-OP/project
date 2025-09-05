@@ -26,10 +26,13 @@ export class RedisManager{
     public sendAndAwait(message: any) {
         return new Promise<MessageFromOrderbook>((resolve) => {
             const id = this.getRandomClientId();
+            console.log("🆔 [RedisManager] Generated clientId:", id);
             this.client.subscribe(id, (message) => {
+                console.log("✅ [RedisManager] Got response on channel:", id, "Message:", message);
                 this.client.unsubscribe(id);
                 resolve(JSON.parse(message));
             });
+            console.log("📤 [RedisManager] Pushing message to Redis queue:", message);
             this.publisher.lPush("messages", JSON.stringify({ clientId: id, message }));
         });
     }
