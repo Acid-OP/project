@@ -1,4 +1,5 @@
 import { RedisManager } from "../RedisManger";
+import { Order } from "./OrderBook";
 
 export const CREATE_ORDER = "CREATE_ORDER"
 type MessageFromApi = {
@@ -11,25 +12,11 @@ type MessageFromApi = {
         userId: string
     }
 }
-interface Order {
-  price: number;
-  quantity: number;
-  orderId: string;
-  filled: number;
-  side: "buy" | "sell";
-  userId: string;
-}
-
+export const BASE_CURRENCY = "INR";
 export class Engine {
   private orderbooks: Order[] = [];
 
-  private createOrder(
-    market: string,
-    price: string,
-    quantity: string,
-    side: "buy" | "sell",
-    userId: string
-  ) {
+  private createOrder(market: string,price: string,quantity: string,side: "buy" | "sell",userId: string) {
     const order: Order = {
       price: Number(price),
       quantity: Number(quantity),
@@ -40,11 +27,8 @@ export class Engine {
       side,
       userId,
     };
-
-    // simple mock orderbook
     const executedQty = Number(quantity);
     const fills = [{qty: Number(quantity),price: price, tradeId: Date.now() }];
-
     return { executedQty, fills, orderId: order.orderId };
   }
 
