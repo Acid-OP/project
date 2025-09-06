@@ -68,6 +68,37 @@ export class OrderBook {
 
 
     }
+    matchAsk(order:Order) {
+        const fills:Fill[] = [];
+        let executedQty = 0;
+
+        for(let i=0 ; this.bids.length ; i++) {
+            const bid = this.bids[i];
+            if(bid && bid.price <= order.price && executedQty < order.quantity) {
+                const amountRemaining = Math.min(order.quantity - executedQty, bid.quantity);
+                executedQty += amountRemaining;
+                bid.filled += amountRemaining;
+                fills.push({
+                    price: bid.price.toString(),
+                    qty: amountRemaining,
+                    tradeId: this.lastTradeId++,
+                    otherUserId: bid.userId,
+                    markerOrderId: bid.orderId
+                });
+            }
+        }
+        for (let i = 0; i < this.bids.length; i++) {
+            const bid = this.bids[i];
+            if (bid && bid.filled === bid.quantity) {
+                this.bids.splice(i, 1);
+                i--;
+            }
+        }
+        return {
+            fills,
+            executedQty
+        };
+    }
     addOrder(order:Order){
         if(order.side === "buy") {
             const {executedQty , fills} = this.matchBid(order);
@@ -85,8 +116,19 @@ export class OrderBook {
             }
 
         } else {
-            // sell logic 
-        return { executedQty: 0, fills: [] };
-    }
+            const {executedQty, fills} = this.matchAsk(order);
+            order.filled = executedQty;
+            if (executedQty === order.quantity) {
+                return {
+                    executedQty,
+                    fills
+                }
+            }
+            this.asks.push(order);
+            return {
+                executedQty,
+                fills
+            }
+        }
     }
 }
