@@ -34,7 +34,13 @@ export class OrderBook {
      getMarketPair() {
         return `${this.baseAsset}_${this.quoteAsset}`;
     }
+    private sortBids() {
+    this.bids.sort((a, b) => b.price - a.price);
+    }
 
+    private sortAsks() {
+    this.asks.sort((a, b) => a.price - b.price);
+    }
     matchBid(order:Order) {
         const fills: Fill[] = [];
         let executedQty=0;
@@ -66,9 +72,6 @@ export class OrderBook {
             fills,
             executedQty
         };
-    
-
-
     }
     matchAsk(order:Order) {
         const fills:Fill[] = [];
@@ -112,6 +115,7 @@ export class OrderBook {
                 }
             }
             this.bids.push(order);
+            this.sortBids(); 
             return {
                 executedQty,
                 fills
@@ -127,6 +131,7 @@ export class OrderBook {
                 }
             }
             this.asks.push(order);
+            this.sortAsks();
             return {
                 executedQty,
                 fills

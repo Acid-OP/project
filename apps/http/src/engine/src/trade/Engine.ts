@@ -1,5 +1,5 @@
 import { RedisManager } from "../RedisManager";
-import { Order, OrderBook } from "./OrderBook";
+import { Fill, Order, OrderBook } from "./OrderBook";
 
 export const CREATE_ORDER = "CREATE_ORDER"
 type MessageFromApi = {
@@ -54,6 +54,7 @@ export class Engine {
   
   private checkAndLockFunds(userId: string, side: "buy" | "sell",quoteAsset:string, baseAsset: string, price: number, quantity: number) {
     const userBalance = this.balances.get(userId);
+    
     if (side === "buy") {
       const required = price * quantity;
       if (userBalance && userBalance[quoteAsset]) {
@@ -77,7 +78,59 @@ export class Engine {
       }
     }
   }
-  
+
+  private updateBalancesAfterTrade(
+    userId: string, 
+    fills: Fill[], 
+    side: "buy" | "sell", 
+    baseAsset: string, 
+    quoteAsset: string
+  ) {
+    const userBalance = this.balances.get(userId);
+    if (!userBalance) return;
+
+    fills.forEach(fill => {
+      const tradeValue = fill.qty * Number(fill.price);
+
+      const otherUserId = fill.otherUserId;
+      const otherUserBalance = this.balances.get(otherUserId);
+      if (!otherUserBalance) return;
+
+      if (side === "buy") {
+        // Update buyer (current user)
+        if (
+          userBalance[baseAsset] && 
+          userBalance[quoteAsset] && 
+          otherUserBalance[quoteAsset] && 
+          otherUserBalance[baseAsset]
+        ) {
+          userBalance[baseAsset].available += fill.qty;
+          userBalance[quoteAsset].locked -= tradeValue;
+
+          // Update seller (other user)
+          otherUserBalance[quoteAsset].available += tradeValue;
+          otherUserBalance[baseAsset].locked -= fill.qty;
+        }
+      } else if (side === "sell") {
+        // Update seller (current user)
+        if (
+          userBalance[baseAsset] && 
+          userBalance[quoteAsset] && 
+          otherUserBalance[quoteAsset] && 
+          otherUserBalance[baseAsset]
+        ) {
+          userBalance[quoteAsset].available += tradeValue;
+          userBalance[baseAsset].locked -= fill.qty;
+
+          // Update buyer (other user)
+          otherUserBalance[baseAsset].available += fill.qty;
+          otherUserBalance[quoteAsset].locked -= tradeValue;
+        }
+      }
+    });
+  }
+
+
   private createOrder(market: string,price: string,quantity: string,side: "buy" | "sell",userId: string) {
     
     const orderbook = this.orderbooks.find(o => o.getMarketPair() === market)
@@ -106,6 +159,11 @@ export class Engine {
       userId,
     };
     const { fills, executedQty } = orderbook.addOrder(order);
+    const baseAsset = market.split("_")[0];  
+    const quoteAsset = market.split("_")[1];
+    if(baseAsset && quoteAsset){
+      this.updateBalancesAfterTrade(userId, fills, side, baseAsset, quoteAsset);
+    }
     return { executedQty, fills, orderId: order.orderId };
   }
 
