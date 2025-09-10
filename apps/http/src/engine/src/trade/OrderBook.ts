@@ -42,7 +42,9 @@ export class OrderBook {
         for(let i = 0; i < this.asks.length; i++) {
             const ask = this.asks[i];
             if (ask && ask.price <= order.price && executedQty < order.quantity) {
-                const filledQty = Math.min((order.quantity - executedQty), ask.quantity);executedQty += filledQty;
+                const filledQty = Math.min((order.quantity - executedQty), ask.quantity);
+            // remaining amount the buyer wants to buy And the total amount the seller has to sell
+                executedQty += filledQty;
                 ask.filled += filledQty;
                 fills.push({
                     price: ask.price.toString(),
@@ -72,9 +74,9 @@ export class OrderBook {
         const fills:Fill[] = [];
         let executedQty = 0;
 
-        for(let i=0 ; this.bids.length ; i++) {
+        for(let i=0 ; i< this.bids.length ; i++) {
             const bid = this.bids[i];
-            if(bid && bid.price <= order.price && executedQty < order.quantity) {
+            if(bid && bid.price >= order.price && executedQty < order.quantity) {
                 const amountRemaining = Math.min(order.quantity - executedQty, bid.quantity);
                 executedQty += amountRemaining;
                 bid.filled += amountRemaining;

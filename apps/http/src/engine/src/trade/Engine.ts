@@ -1,4 +1,4 @@
-import { RedisManager } from "../RedisManger";
+import { RedisManager } from "../RedisManager";
 import { Order, OrderBook } from "./OrderBook";
 
 export const CREATE_ORDER = "CREATE_ORDER"
@@ -12,23 +12,75 @@ type MessageFromApi = {
         userId: string
     }
 }
-export const BASE_CURRENCY = "INR";
+interface UserBalance {
+    [key: string]: {
+        available: number;
+        locked: number;
+    }
+}
+export const BASE_CURRENCY = "USD";
 export class Engine {
   private orderbooks: OrderBook[] = [];
+  private balances: Map<string, UserBalance> = new Map();
 
   constructor() {
     this.orderbooks = [
-      new OrderBook("TATA", [], [], 0, 0),    
-      new OrderBook("BTC", [], [], 0, 50000),
-      new OrderBook("SOL", [], [], 0, 100)
+    new OrderBook("BTC_USD", [], [], 0, 45000),    
+    new OrderBook("ETH_USD", [], [], 0, 3000),
+    new OrderBook("ETH_BTC", [], [], 0, 0.067)
     ];
   }
 
+  private defaultBalance(userId: string) {
+    if (!this.balances.has(userId)) {     
+      const defaultBalance: UserBalance = {
+        [BASE_CURRENCY]: {  
+          available: 100000,   
+          locked: 0
+        },
+        "BTC": {
+          available: 2,       
+          locked: 0
+        },
+        "ETH": {
+          available: 50,     
+          locked: 0
+        }
+      };
+      
+      this.balances.set(userId, defaultBalance);
+    }
+  }
+  
+  private checkAndLockFunds(userId: string, side: "buy" | "sell",quoteAsset:string, baseAsset: string, price: number, quantity: number) {
+    const userBalance = this.balances.get(userId);
+    if (side === "buy") {
+      const required = price * quantity;
+      if (userBalance && userBalance[quoteAsset]) {
+        if (userBalance[quoteAsset].available >= required) {
+          userBalance[quoteAsset].available -= required;
+          userBalance[quoteAsset].locked += required;
+        } else {
+          throw new Error("Insufficient funds for buy order");
+        }
+      }
+    }
+
+    if (side === "sell") {
+      if (userBalance && userBalance[baseAsset]) {
+        if (userBalance[baseAsset].available >= quantity) {
+          userBalance[baseAsset].available -= quantity;
+          userBalance[baseAsset].locked += quantity;
+        } else {
+          throw new Error("Insufficient funds for sell order");
+        }
+      }
+    }
+  }
+  
   private createOrder(market: string,price: string,quantity: string,side: "buy" | "sell",userId: string) {
     
     const orderbook = this.orderbooks.find(o => o.getMarketPair() === market)
-    const baseAsset = market.split("_")[0];
-    const quoteAsset = market.split("_")[1];
 
     if (!orderbook) {
       throw new Error("No orderbook found");
@@ -62,6 +114,22 @@ export class Engine {
     switch (message.type) {
       case CREATE_ORDER:
         try {
+          this.defaultBalance(message.data.userId);
+          const baseAsset = message.data.market.split("_")[0];
+          const quoteAsset = message.data.market.split("_")[1];
+          const numPrice = Number(message.data.price);
+          const numQuantity = Number(message.data.quantity);
+          
+          if (baseAsset && quoteAsset) {
+          this.checkAndLockFunds(
+            message.data.userId,  
+            message.data.side,  
+            quoteAsset,    
+            baseAsset,              
+            numPrice,               
+            numQuantity             
+          );
+        }
           const { executedQty, fills, orderId } = this.createOrder(
             message.data.market,
             message.data.price,
@@ -71,14 +139,14 @@ export class Engine {
           );
           console.log("📝 [Engine] Created order:", { orderId, executedQty, fills });
 
-          await RedisManager.getInstance().sendToApi(clientId, {
+          RedisManager.getInstance().sendToApi(clientId, {
             type: "ORDER_PLACED",
             payload: { orderId, executedQty, fills },
           });
            console.log("📤 [Engine] Published ORDER_PLACED to channel:", clientId);
         } catch (e) {
           console.error("❌ Engine error:", e);
-          await RedisManager.getInstance().sendToApi(clientId, {
+          RedisManager.getInstance().sendToApi(clientId, {
             type: "ORDER_CANCELLED",
             payload: { orderId: "", executedQty: 0, remainingQty: 0 },
           });

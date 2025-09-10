@@ -1,6 +1,6 @@
 import { createClient, } from "redis";
 import { Engine } from "./trade/Engine";
-import { RedisManager } from "./RedisManger";
+import { RedisManager } from "./RedisManager";
 async function main() {
     const engine = new Engine(); 
     const redisClient = createClient();
