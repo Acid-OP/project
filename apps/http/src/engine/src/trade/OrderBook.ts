@@ -41,7 +41,7 @@ export class OrderBook {
     });
     }
 
-     getMarketPair() {
+    getMarketPair() {
         return `${this.baseAsset}_${this.quoteAsset}`;
     }
     private sortBids() {
@@ -51,6 +51,29 @@ export class OrderBook {
     private sortAsks() {
     this.asks.sort((a, b) => a.price - b.price);
     }
+
+    cancelBid (order:Order) {
+        const index = this.bids.findIndex(g => g.orderId === order.orderId);
+        if(index === -1){
+            if(this.bids && this.bids[index]){
+            const price = this.bids[index].price;
+            this.bids.splice(index, 1);
+            return price
+            }
+        }
+    }
+
+    cancelAsks (order:Order) {
+    const index = this.bids.findIndex(g => g.orderId === order.orderId);
+    if(index === -1){
+        if(this.bids && this.bids[index]){
+        const price = this.bids[index].price;
+        this.bids.splice(index, 1);
+        return price
+            }
+        }
+    }
+    
     matchBid(order:Order) {
          console.log(`🔄 [OrderBook] Matching BUY order:`, {
         orderId: order.orderId,

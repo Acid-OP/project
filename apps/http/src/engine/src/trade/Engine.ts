@@ -1,17 +1,7 @@
 import { RedisManager } from "../RedisManager";
+import { CANCEL_ORDER, CREATE_ORDER, MessageFromApi } from "../types/market";
 import { Fill, Order, OrderBook } from "./OrderBook";
 
-export const CREATE_ORDER = "CREATE_ORDER"
-type MessageFromApi = {
-    type: typeof CREATE_ORDER,
-    data: {
-        market: string,
-        price: string,
-        quantity: string,
-        side: "buy" | "sell",
-        userId: string
-    }
-}
 interface UserBalance {
     [key: string]: {
         available: number;
@@ -265,16 +255,6 @@ export class Engine {
   }
 
   public async process({message,clientId,}: {message: MessageFromApi; clientId: string;}) {
-    console.log("⚙️ [Engine] Processing message:", {
-      type: message.type,
-      market: message.data.market,
-      price: message.data.price,
-      quantity: message.data.quantity,
-      side: message.data.side,
-      userId: message.data.userId,
-      clientId
-    });
-    
     switch (message.type) {
       case CREATE_ORDER:
         try {
@@ -344,16 +324,59 @@ export class Engine {
           console.log("📤 [Engine] Published ORDER_CANCELLED to channel:", clientId);
         }
         break;
+        case CANCEL_ORDER:
+          try {
+            const orderId = message.data.orderId;
+            const cancelMarket = message.data.market;
+            const cancelOrderbook = this.orderbooks.find(o => o.getMarketPair() === cancelMarket);
+            const quoteAsset = cancelMarket.split("_")[1];
+            if (!cancelOrderbook) {
+              throw new Error("No orderbook found");
+            }
+            const order = cancelOrderbook.asks.find(o => o.orderId === orderId) || cancelOrderbook.bids.find(o => o.orderId === orderId);
+            if (!order) {
+              throw new Error("No order found");
+            }
+            if (order.side === "buy" && quoteAsset) {
+              const price = cancelOrderbook.cancelBid(order);
+              const userBalance = this.balances.get(order.userId);
+              if (!userBalance || !userBalance[quoteAsset]) {
+                  throw new Error("User balance not found");
+              }
+              const leftQuantity = (order.quantity - order.filled) * order.price;
+              userBalance[quoteAsset].available += leftQuantity;  
+              userBalance[quoteAsset].locked -= leftQuantity;
+              if(price){
+                // return depth
+              }
+            } else {
+              if(quoteAsset){
+              const price = cancelOrderbook.cancelBid(order);
+              const userBalance = this.balances.get(order.userId);
+              if (!userBalance || !userBalance[quoteAsset]) {
+                  throw new Error("User balance not found");
+              }
+              const leftQuantity = (order.quantity - order.filled);
+              userBalance[quoteAsset].available += leftQuantity;  
+              userBalance[quoteAsset].locked -= leftQuantity;
+              if(price){
+                // return depth
+              }}
+            }
+          } catch (e) {
+            console.error("❌ Error during CANCEL_ORDER:", e);
+          }
+          break;
 
-      default:
-        console.warn("⚠️ Unknown message type:", message.type);
+        default:
+          console.warn("⚠️ Unknown message type:");
+
+      }
     }
-  }
 
-  // Add these helper methods for testing visibility
   public getBalance(userId: string) {
     const balance = this.balances.get(userId);
-    console.log(`💰 [Engine] Getting balance for ${userId}:`, balance);
+    console.log(`[Engine] Getting balance for ${userId}:`, balance);
     return balance || null;
   }
 

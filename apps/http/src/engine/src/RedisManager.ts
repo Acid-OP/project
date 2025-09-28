@@ -1,24 +1,5 @@
 import { createClient, RedisClientType } from "redis";
-type  MessageToApi = {
-    type: "ORDER_PLACED",
-    payload: {
-        orderId: string,
-        executedQty: number,
-        fills: {
-            price: string,
-            qty: number,
-            tradeId: number
-        }[]
-    }
-}| {
-    type: "ORDER_CANCELLED",
-    payload: {
-        orderId: string,
-        executedQty: number,
-        remainingQty: number
-    }
-}
-export const CREATE_ORDER = "CREATE_ORDER"
+import { MessageToApi } from "./types/market";
 
 export class RedisManager {
     private client: RedisClientType;
