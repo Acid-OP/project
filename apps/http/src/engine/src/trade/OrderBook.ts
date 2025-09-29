@@ -25,7 +25,7 @@ export class OrderBook {
 
    constructor(baseAsset: string, bids: Order[], asks: Order[], lastTradeId: number, currentPrice: number) {
       const parts = baseAsset.split("_");
-      this.baseAsset = parts[0] || baseAsset;           // "BTC" from "BTC_USD"
+      this.baseAsset = parts[0] || baseAsset;     
       this.quoteAsset = parts[1] || "USD";
         
       this.bids = bids;
@@ -73,7 +73,7 @@ export class OrderBook {
             }
         }
     }
-    
+
     matchBid(order:Order) {
          console.log(`🔄 [OrderBook] Matching BUY order:`, {
         orderId: order.orderId,

@@ -1,5 +1,5 @@
 import { RedisManager } from "../RedisManager";
-import { CANCEL_ORDER, CREATE_ORDER, MessageFromApi } from "../types/market";
+import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, MessageFromApi } from "../types/market";
 import { Fill, Order, OrderBook } from "./OrderBook";
 
 interface UserBalance {
@@ -362,12 +362,24 @@ export class Engine {
               if(price){
                 // return depth
               }}
+                RedisManager.getInstance().sendToApi(clientId, {
+                        type: "ORDER_CANCELLED",
+                        payload: {
+                            orderId,
+                            executedQty: 0,
+                            remainingQty: 0
+                        }
+                    });
             }
           } catch (e) {
-            console.error("❌ Error during CANCEL_ORDER:", e);
+            console.error("Error during CANCEL_ORDER:", e);
           }
           break;
-
+        case GET_DEPTH:
+              try{
+                 const market = message.data.market;
+              } catch(e){
+              }
         default:
           console.warn("⚠️ Unknown message type:");
 
