@@ -54,7 +54,7 @@ export class OrderBook {
 
     cancelBid (order:Order) {
         const index = this.bids.findIndex(g => g.orderId === order.orderId);
-        if(index === -1){
+        if(index !== -1){
             if(this.bids && this.bids[index]){
             const price = this.bids[index].price;
             this.bids.splice(index, 1);
@@ -65,18 +65,18 @@ export class OrderBook {
     }
 
     cancelAsk (order:Order) {
-    const index = this.asks.findIndex(g => g.orderId === order.orderId);
-    if(index === -1){
-        if(this.asks && this.asks[index]){
-        const price = this.asks[index].price;
-        this.asks.splice(index, 1);
-        return price
+        const index = this.asks.findIndex(g => g.orderId === order.orderId);
+        if(index !== -1){
+            if(this.asks && this.asks[index]){
+            const price = this.asks[index].price;
+            this.asks.splice(index, 1);
+            return price
+                }
             }
-        }
     }
 
     matchBid(order:Order) {
-         console.log(`🔄 [OrderBook] Matching BUY order:`, {
+        console.log(`🔄 [OrderBook] Matching BUY order:`, {
         orderId: order.orderId,
         price: order.price,
         quantity: order.quantity,

@@ -261,7 +261,6 @@ export class Engine {
           console.log(`🚀 [Engine] Starting CREATE_ORDER process for user ${message.data.userId}`);
           
           this.defaultBalance(message.data.userId);
-          
           const baseAsset = message.data.market.split("_")[0];
           const quoteAsset = message.data.market.split("_")[1];
           const numPrice = Number(message.data.price);
@@ -337,8 +336,14 @@ export class Engine {
             payload: { orderId: "", executedQty: 0, remainingQty: 0 }
           };
           console.log("📤 [Engine] Sending error response:", errorResponse);
-          // @ts-ignore
-          RedisManager.getInstance().sendToApi(clientId, errorResponse);
+          RedisManager.getInstance().sendToApi(clientId, {
+            type: "ORDER_CANCELLED",
+            payload: {
+                orderId: "",
+                executedQty: 0,
+                remainingQty: 0
+            }
+          });
           console.log("📤 [Engine] Published ORDER_CANCELLED to channel:", clientId);
         }
         break;
