@@ -402,14 +402,73 @@ export class Engine {
         case GET_DEPTH:
               try{
                  const market = message.data.market;
-              } catch(e){
-              }
+                 const orderbook = this.orderbooks.find(x => x.getMarketPair() === market);
+                 if(!orderbook){
+                  throw new Error("No orderbook found");
+                 }
+                 RedisManager.getInstance().sendToApi(clientId,{
+                  type:"DEPTH", 
+                  payload: this.getDepth(orderbook)
+                });
+                } catch(e){
+                  RedisManager.getInstance().sendToApi(clientId, {
+                    type: "DEPTH",
+                    payload: {
+                      bids: [],
+                      asks: []
+                    }
+                  });
+                }
+                break;
         default:
           console.warn("⚠️ Unknown message type:");
-
       }
     }
 
+    private getDepth(orderbook: OrderBook) {
+      const bidsObj: {[key: string]: number} = {};
+      const asksObj: {[key: string]: number} = {};
+
+      for (let i = 0; i < orderbook.bids.length; i++) {
+          const order = orderbook.bids[i];
+          if(order){
+          const price = order.price;
+          const availableQty = order.quantity - order.filled;
+          
+          if (!bidsObj[price]) {
+              bidsObj[price] = 0;
+          }
+          bidsObj[price] += availableQty;
+      }}
+
+      for (let i = 0; i < orderbook.asks.length; i++) {
+          const order = orderbook.asks[i];
+          if(order){
+          const price = order.price;
+          const availableQty = order.quantity - order.filled;
+          
+          if (!asksObj[price]) {
+              asksObj[price] = 0;
+          }
+          
+          asksObj[price] += availableQty;
+      }}
+
+      const bids: [string, string][] = [];
+      const asks: [string, string][] = [];
+
+      for (const price in bidsObj) {
+        if(bidsObj && bidsObj[price]){
+          bids.push([price, bidsObj[price].toString()]);
+      }}
+
+      for (const price in asksObj) {
+        if(asksObj && asksObj[price]){
+          asks.push([price, asksObj[price].toString()]);
+      }}
+
+      return { bids, asks };
+    }
   public getBalance(userId: string) {
     const balance = this.balances.get(userId);
     console.log(`[Engine] Getting balance for ${userId}:`, balance);
