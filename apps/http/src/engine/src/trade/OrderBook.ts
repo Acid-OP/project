@@ -61,14 +61,15 @@ export class OrderBook {
             return price
             }
         }
+        return null;
     }
 
-    cancelAsks (order:Order) {
-    const index = this.bids.findIndex(g => g.orderId === order.orderId);
+    cancelAsk (order:Order) {
+    const index = this.asks.findIndex(g => g.orderId === order.orderId);
     if(index === -1){
-        if(this.bids && this.bids[index]){
-        const price = this.bids[index].price;
-        this.bids.splice(index, 1);
+        if(this.asks && this.asks[index]){
+        const price = this.asks[index].price;
+        this.asks.splice(index, 1);
         return price
             }
         }
@@ -81,6 +82,7 @@ export class OrderBook {
         quantity: order.quantity,
         userId: order.userId
     });
+
     console.log(`📊 [OrderBook] Current asks before matching:`, this.asks.length);
         this.sortAsks();
         const fills: Fill[] = [];

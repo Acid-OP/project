@@ -293,7 +293,25 @@ export class Engine {
             message.data.userId
           );
           console.log("📝 [Engine] Created order:", { orderId, executedQty, fills });
-
+          if (executedQty < numQuantity && baseAsset && quoteAsset) {
+            const userBalance = this.balances.get(message.data.userId);
+            if (userBalance) {
+              const remaining = numQuantity - executedQty;
+              
+              if (message.data.side === "buy") {
+                const refund = remaining * numPrice;
+                if(userBalance && userBalance[quoteAsset]){
+                userBalance[quoteAsset].available += refund;
+                userBalance[quoteAsset].locked -= refund;
+                console.log(`[Engine] Unlocked ${refund} ${quoteAsset} from partial fill`);
+              }} else {
+                if(userBalance && userBalance[baseAsset]){
+                userBalance[baseAsset].available += remaining;
+                userBalance[baseAsset].locked -= remaining;
+                console.log(`[Engine] Unlocked ${remaining} ${baseAsset} from partial fill`);
+              }}
+            }
+          }
           const successResponse = {
             type: "ORDER_PLACED",
             payload: { orderId, executedQty, fills }
@@ -350,15 +368,16 @@ export class Engine {
                 // return depth
               }
             } else {
-              if(quoteAsset){
-              const price = cancelOrderbook.cancelBid(order);
+              const baseAsset = cancelMarket.split("_")[0];
+              if(baseAsset){
+              const price = cancelOrderbook.cancelAsk(order);
               const userBalance = this.balances.get(order.userId);
-              if (!userBalance || !userBalance[quoteAsset]) {
+              if (!userBalance || !userBalance[baseAsset]) {
                   throw new Error("User balance not found");
               }
               const leftQuantity = (order.quantity - order.filled);
-              userBalance[quoteAsset].available += leftQuantity;  
-              userBalance[quoteAsset].locked -= leftQuantity;
+              userBalance[baseAsset].available += leftQuantity;  
+              userBalance[baseAsset].locked -= leftQuantity;
               if(price){
                 // return depth
               }}
