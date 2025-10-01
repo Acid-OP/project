@@ -33,6 +33,46 @@ export class OrderBook {
       this.lastTradeId = lastTradeId || 0;
       this.currentPrice = currentPrice || 0;
     }
+    getDepth() {
+        const bids: [string, string][] = [];
+        const asks: [string, string][] = [];
+
+        const bidsObj: {[key: string]: number} = {};
+        const asksObj: {[key: string]: number} = {};
+
+        for (let i = 0; i < this.bids.length; i++) {
+            const order = this.bids[i];
+            if (order && typeof order.price === 'number') {
+                const priceKey = order.price.toString();
+                bidsObj[priceKey] = (bidsObj[priceKey] ?? 0) + order.quantity;
+            }
+        }
+
+        for (let i = 0; i < this.asks.length; i++) {
+            const order = this.asks[i];
+            if (order && typeof order.price === 'number') {
+                const priceKey = order.price.toString();
+                asksObj[priceKey] = (asksObj[priceKey] ?? 0) + order.quantity;
+            }
+        }
+
+        for (const price in bidsObj) {
+            if (bidsObj[price]) {
+                bids.push([price, bidsObj[price].toString()]);
+            }
+        }
+
+        for (const price in asksObj) {
+            if (asksObj[price]) {
+                asks.push([price, asksObj[price].toString()]);
+            }
+        }
+
+        return {
+            bids,
+            asks
+        };
+    }
 
     getMarketPair() {
         return `${this.baseAsset}_${this.quoteAsset}`;
@@ -75,8 +115,12 @@ export class OrderBook {
         
         for(let i = 0; i < this.asks.length; i++) {
             const ask = this.asks[i];
-            if (ask && ask.price <= order.price && executedQty < order.quantity) {
-                if (ask.userId === order.userId) continue;
+            if (!ask) continue;
+            if (ask.userId === order.userId) {
+                console.log(`⚠️ [OrderBook] Skipping self-trade for user ${order.userId}`);
+                continue;
+            }
+            if (ask.price <= order.price && executedQty < order.quantity) {
                 const filledQty = Math.min((order.quantity - executedQty), ask.quantity);
             // remaining amount the buyer wants to buy And the total amount the seller has to sell
                 executedQty += filledQty;
@@ -104,16 +148,18 @@ export class OrderBook {
     }
 
     matchAsk(order:Order) {
+        this.sortBids();
         const fills:Fill[] = [];
         let executedQty = 0;
 
         for(let i=0 ; i< this.bids.length ; i++) {
             const bid = this.bids[i];
-            if(bid && bid.price >= order.price && executedQty < order.quantity) {
-                if (bid.userId === order.userId) {
-                    console.log(`⚠️ [OrderBook] Skipping self-trade for user ${order.userId}`);
-                    continue;
-                }
+            if (!bid) continue;
+            if (bid.userId === order.userId) {
+                console.log(`⚠️ [OrderBook] Skipping self-trade for user ${order.userId}`);
+                continue;
+            }
+            if(bid.price >= order.price && executedQty < order.quantity) {
                 const amountRemaining = Math.min(order.quantity - executedQty, bid.quantity);
                 executedQty += amountRemaining;
                 bid.filled += amountRemaining;

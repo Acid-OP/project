@@ -138,7 +138,6 @@ export class Engine {
         if (!orderbook) {
             return;
         }
-        const d = this.getDepth
         const depth = orderbook.getDepth();
         const updatedBids = depth?.bids.filter(x => x[0] === price);
         const updatedAsks = depth?.asks.filter(x => x[0] === price);
@@ -201,60 +200,85 @@ export class Engine {
   public async process({message,clientId,}: {message: MessageFromApi; clientId: string;}) {
     switch (message.type) {
       case CREATE_ORDER:
+        let fundsLocked = false;
+        let orderExecuted = false;  
         try {  
-          this.defaultBalance(message.data.userId);
-          const baseAsset = message.data.market.split("_")[0];
-          const quoteAsset = message.data.market.split("_")[1];
-          const numPrice = Number(message.data.price);
-          const numQuantity = Number(message.data.quantity);
-      
-          if (baseAsset && quoteAsset) {
-            this.checkAndLockFunds(
-              message.data.userId,  
-              message.data.side,  
-              quoteAsset,    
-              baseAsset,              
-              numPrice,               
-              numQuantity             
+            this.defaultBalance(message.data.userId);
+            const baseAsset = message.data.market.split("_")[0];
+            const quoteAsset = message.data.market.split("_")[1];
+            const numPrice = Number(message.data.price);
+            const numQuantity = Number(message.data.quantity);
+        
+            if (baseAsset && quoteAsset) {
+                this.checkAndLockFunds(
+                    message.data.userId,  
+                    message.data.side,  
+                    quoteAsset,    
+                    baseAsset,              
+                    numPrice,               
+                    numQuantity             
+                );
+                fundsLocked = true;
+            }
+            
+            const { executedQty, fills, orderId } = this.createOrder(
+                message.data.market,
+                message.data.price,
+                message.data.quantity,
+                message.data.side,
+                message.data.userId
             );
-          }
-          const { executedQty, fills, orderId } = this.createOrder(
-            message.data.market,
-            message.data.price,
-            message.data.quantity,
-            message.data.side,
-            message.data.userId
-          );
-          if (executedQty < numQuantity && baseAsset && quoteAsset) {
-            const userBalance = this.balances.get(message.data.userId);
-            if (userBalance) {
-              const remaining = numQuantity - executedQty;
-              
-              if (message.data.side === "buy") {
-                const refund = remaining * numPrice;
-                if(userBalance && userBalance[quoteAsset]){
-                userBalance[quoteAsset].available += refund;
-                userBalance[quoteAsset].locked -= refund;
-              }} else {
-                if(userBalance && userBalance[baseAsset]){
-                userBalance[baseAsset].available += remaining;
-                userBalance[baseAsset].locked -= remaining;
-              }}
+            
+            orderExecuted = true; 
+            
+            if (executedQty < numQuantity && baseAsset && quoteAsset) {
+                const userBalance = this.balances.get(message.data.userId);
+                if (userBalance) {
+                    const remaining = numQuantity - executedQty;
+                    
+                    if (message.data.side === "buy" && userBalance[quoteAsset]) {
+                        const refund = remaining * numPrice;
+                        userBalance[quoteAsset].available += refund;
+                        userBalance[quoteAsset].locked -= refund;
+                    } else if (userBalance[baseAsset]) {
+                        userBalance[baseAsset].available += remaining;
+                        userBalance[baseAsset].locked -= remaining;
+                    }
+                }
             }
-          }
-          // @ts-ignore
-          RedisManager.getInstance().sendToApi(clientId, successResponse);
+            
+            RedisManager.getInstance().sendToApi(clientId, {
+                type: "ORDER_PLACED",
+                payload: { orderId, executedQty, fills }
+            });
+            
         } catch (e) {
-          RedisManager.getInstance().sendToApi(clientId, {
-            type: "ORDER_CANCELLED",
-            payload: {
-                orderId: "",
-                executedQty: 0,
-                remainingQty: 0
+            console.error("Order creation failed:", e);
+            
+            if (fundsLocked && !orderExecuted && message.data) {
+                const baseAsset = message.data.market.split("_")[0];
+                const quoteAsset = message.data.market.split("_")[1];
+                const numPrice = Number(message.data.price);
+                const numQuantity = Number(message.data.quantity);
+                const userBalance = this.balances.get(message.data.userId);
+                
+                if (userBalance && baseAsset && quoteAsset) {
+                    if (message.data.side === "buy" && userBalance[quoteAsset]) {
+                        const amount = numQuantity * numPrice;
+                        userBalance[quoteAsset].available += amount;
+                        userBalance[quoteAsset].locked -= amount;
+                    } else if (userBalance[baseAsset]) {
+                        userBalance[baseAsset].available += numQuantity;
+                        userBalance[baseAsset].locked -= numQuantity;
+                    }
+                }
             }
-          });
-        }
-        break;
+            RedisManager.getInstance().sendToApi(clientId, {
+                type: "ORDER_CANCELLED",
+                payload: { orderId: "", executedQty: 0, remainingQty: 0 }
+            });
+          }
+          break;
         case CANCEL_ORDER:
           try {
             const orderId = message.data.orderId;
@@ -293,7 +317,7 @@ export class Engine {
               userBalance[baseAsset].locked -= leftQuantity;
               if(price){
                 // return depth
-              }}
+              }}}
                 RedisManager.getInstance().sendToApi(clientId, {
                         type: "ORDER_CANCELLED",
                         payload: {
@@ -302,7 +326,7 @@ export class Engine {
                             remainingQty: 0
                         }
                     });
-            }
+            
           } catch (e) {
             console.error("Error during CANCEL_ORDER:", e);
           }
@@ -316,7 +340,7 @@ export class Engine {
                  }
                  RedisManager.getInstance().sendToApi(clientId,{
                   type:"DEPTH", 
-                  payload: this.getDepth(orderbook)
+                  payload: orderbook.getDepth()
                 });
                 } catch(e){
                   RedisManager.getInstance().sendToApi(clientId, {
@@ -333,50 +357,6 @@ export class Engine {
       }
     }
 
-    private getDepth(orderbook: OrderBook) {
-      const bidsObj: {[key: string]: number} = {};
-      const asksObj: {[key: string]: number} = {};
-
-      for (let i = 0; i < orderbook.bids.length; i++) {
-          const order = orderbook.bids[i];
-          if(order){
-          const price = order.price;
-          const availableQty = order.quantity - order.filled;
-          
-          if (!bidsObj[price]) {
-              bidsObj[price] = 0;
-          }
-          bidsObj[price] += availableQty;
-      }}
-
-      for (let i = 0; i < orderbook.asks.length; i++) {
-          const order = orderbook.asks[i];
-          if(order){
-          const price = order.price;
-          const availableQty = order.quantity - order.filled;
-          
-          if (!asksObj[price]) {
-              asksObj[price] = 0;
-          }
-          
-          asksObj[price] += availableQty;
-      }}
-
-      const bids: [string, string][] = [];
-      const asks: [string, string][] = [];
-
-      for (const price in bidsObj) {
-        if(bidsObj && bidsObj[price]){
-          bids.push([price, bidsObj[price].toString()]);
-      }}
-
-      for (const price in asksObj) {
-        if(asksObj && asksObj[price]){
-          asks.push([price, asksObj[price].toString()]);
-      }}
-
-      return { bids, asks };
-    }
   public getBalance(userId: string) {
     const balance = this.balances.get(userId);
     return balance || null;
