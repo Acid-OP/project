@@ -1,5 +1,6 @@
 import { createClient, RedisClientType } from "redis";
 import { MessageToApi } from "./types/market";
+import { response } from "./types/ohlcv";
 
 export class RedisManager {
     private client: RedisClientType;
@@ -15,6 +16,9 @@ export class RedisManager {
             this.instance = new RedisManager();
         }
         return this.instance;
+    }
+    public publishMessage(channel: string, message: response) {
+        this.client.publish(channel, JSON.stringify(message));
     }
 
     public sendToApi(clientId: string, message: MessageToApi) {
