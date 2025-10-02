@@ -44,7 +44,8 @@ export class OrderBook {
             const order = this.bids[i];
             if (order && typeof order.price === 'number') {
                 const priceKey = order.price.toString();
-                bidsObj[priceKey] = (bidsObj[priceKey] ?? 0) + order.quantity;
+                const availableQty = order.quantity - order.filled;  
+                bidsObj[priceKey] = (bidsObj[priceKey] ?? 0) + availableQty;
             }
         }
 
@@ -52,7 +53,8 @@ export class OrderBook {
             const order = this.asks[i];
             if (order && typeof order.price === 'number') {
                 const priceKey = order.price.toString();
-                asksObj[priceKey] = (asksObj[priceKey] ?? 0) + order.quantity;
+                const availableQty = order.quantity - order.filled; 
+                asksObj[priceKey] = (asksObj[priceKey] ?? 0) + availableQty; 
             }
         }
 
@@ -68,10 +70,7 @@ export class OrderBook {
             }
         }
 
-        return {
-            bids,
-            asks
-        };
+        return { bids, asks };
     }
 
     getMarketPair() {
@@ -91,7 +90,7 @@ export class OrderBook {
             if(this.bids && this.bids[index]){
             const price = this.bids[index].price;
             this.bids.splice(index, 1);
-            return price
+            return price;
             }
         }
         return null;
@@ -103,9 +102,10 @@ export class OrderBook {
             if(this.asks && this.asks[index]){
             const price = this.asks[index].price;
             this.asks.splice(index, 1);
-            return price
-                }
+            return price;
             }
+        }
+        return null;
     }
 
     matchBid(order:Order) {

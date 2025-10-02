@@ -46,35 +46,37 @@ export class Engine {
   }
   
   private checkAndLockFunds(userId: string, side: "buy" | "sell",quoteAsset:string, baseAsset: string, price: number, quantity: number) {
-    
-    const userBalance = this.balances.get(userId);
-    
-    if (side === "buy") {
-      const required = price * quantity;
-      
-      if (userBalance && userBalance[quoteAsset]) {
-        if (userBalance[quoteAsset].available >= required) {
+      const userBalance = this.balances.get(userId);
+      if (!userBalance) {
+        throw new Error(`User ${userId} has no balance initialized`);
+      }    
+      if (side === "buy") {
+          if (!userBalance[quoteAsset]) {
+              throw new Error(`User ${userId} has no ${quoteAsset} balance. Cannot buy.`);
+          }  
+          const required = price * quantity;
+          if (userBalance[quoteAsset].available < required) {
+              throw new Error(
+                  `Insufficient ${quoteAsset}. Required: ${required}, Available: ${userBalance[quoteAsset].available}`
+              );
+          }
           userBalance[quoteAsset].available -= required;
           userBalance[quoteAsset].locked += required;
-        } else {
-          throw new Error("Insufficient funds for buy order");
-        }
       }
-    }
 
-    if (side === "sell") {
-      
-      if (userBalance && userBalance[baseAsset]) {
-        if (userBalance[baseAsset].available >= quantity) {
+      if (side === "sell") {
+          if (!userBalance[baseAsset]) {
+              throw new Error(`User ${userId} has no ${baseAsset} balance. Cannot sell.`);
+          }
+          if (userBalance[baseAsset].available < quantity) {
+              throw new Error(
+                  `Insufficient ${baseAsset}. Required: ${quantity}, Available: ${userBalance[baseAsset].available}`
+              );
+          }
           userBalance[baseAsset].available -= quantity;
           userBalance[baseAsset].locked += quantity;
-        } else {
-          console.log(`❌ [Engine] Insufficient ${baseAsset}. Available: ${userBalance[baseAsset].available}, Required: ${quantity}`);
-          throw new Error("Insufficient funds for sell order");
-        }
       }
     }
-  }
 
   private updateBalancesAfterTrade(
     userId: string, 
@@ -90,7 +92,6 @@ export class Engine {
 
     fills.forEach((fill) => {  
       const tradeValue = fill.qty * Number(fill.price);
-
       const otherUserId = fill.otherUserId;
       const otherUserBalance = this.balances.get(otherUserId);
       if (!otherUserBalance) {
@@ -98,34 +99,27 @@ export class Engine {
       }
 
       if (side === "buy") {
-        // Update buyer (current user)
         if (
           userBalance[baseAsset] && 
           userBalance[quoteAsset] && 
           otherUserBalance[quoteAsset] && 
           otherUserBalance[baseAsset]
         ) {
-          // Buyer receives base asset
           userBalance[baseAsset].available += fill.qty;
           userBalance[quoteAsset].locked -= tradeValue;
 
-          // Update seller (other user)
           otherUserBalance[quoteAsset].available += tradeValue;
           otherUserBalance[baseAsset].locked -= fill.qty;
         }
       } else if (side === "sell") {
-        // Update seller (current user)
         if (
           userBalance[baseAsset] && 
           userBalance[quoteAsset] && 
           otherUserBalance[quoteAsset] && 
           otherUserBalance[baseAsset]
         ) {
-          // Seller receives quote asset
           userBalance[quoteAsset].available += tradeValue;
           userBalance[baseAsset].locked -= fill.qty;
-
-          // Update buyer (other user)
           otherUserBalance[baseAsset].available += fill.qty;
           otherUserBalance[quoteAsset].locked -= tradeValue;
         }
