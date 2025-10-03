@@ -32,6 +32,7 @@ export class OrderBook {
       this.asks = asks;
       this.lastTradeId = lastTradeId || 0;
       this.currentPrice = currentPrice || 0;
+      console.log(`[OrderBook] Initialized ${this.getMarketPair()}`);
     }
     getDepth() {
         const bids: [string, string][] = [];
@@ -90,9 +91,11 @@ export class OrderBook {
             if(this.bids && this.bids[index]){
             const price = this.bids[index].price;
             this.bids.splice(index, 1);
+            console.log(`[OrderBook] Cancelled bid order ${order.orderId} at price ${price}`);
             return price;
             }
         }
+        console.log(`[OrderBook] Bid order ${order.orderId} not found for cancellation`);
         return null;
     }
 
@@ -102,13 +105,16 @@ export class OrderBook {
             if(this.asks && this.asks[index]){
             const price = this.asks[index].price;
             this.asks.splice(index, 1);
+            console.log(`[OrderBook] Cancelled ask order ${order.orderId} at price ${price}`);
             return price;
             }
         }
+        console.log(`[OrderBook] Ask order ${order.orderId} not found for cancellation`);
         return null;
     }
 
     matchBid(order:Order) {
+        console.log(`[OrderBook] Matching BUY order: ${order.quantity} @ ${order.price} for user ${order.userId}`);
         this.sortAsks();
         const fills: Fill[] = [];
         let executedQty=0;
@@ -117,7 +123,7 @@ export class OrderBook {
             const ask = this.asks[i];
             if (!ask) continue;
             if (ask.userId === order.userId) {
-                console.log(`⚠️ [OrderBook] Skipping self-trade for user ${order.userId}`);
+                console.log(`[OrderBook] Skipping self-trade for user ${order.userId}`);
                 continue;
             }
             if (ask.price <= order.price && executedQty < order.quantity) {
@@ -131,6 +137,7 @@ export class OrderBook {
                     otherUserId: ask.userId,
                     markerOrderId: ask.orderId
                 });
+                console.log(`[OrderBook] Filled ${filledQty} @ ${ask.price} (trade #${this.lastTradeId - 1})`);
             }
         }
         for (let i = 0; i < this.asks.length; i++) {
@@ -140,6 +147,7 @@ export class OrderBook {
                 i--;
             }
         }
+        console.log(`[OrderBook] BUY match complete: ${executedQty}/${order.quantity} executed, ${fills.length} fills`);
         return {
             fills,
             executedQty
@@ -147,6 +155,7 @@ export class OrderBook {
     }
 
     matchAsk(order:Order) {
+        console.log(`[OrderBook] Matching SELL order: ${order.quantity} @ ${order.price} for user ${order.userId}`);
         this.sortBids();
         const fills:Fill[] = [];
         let executedQty = 0;
@@ -155,7 +164,7 @@ export class OrderBook {
             const bid = this.bids[i];
             if (!bid) continue;
             if (bid.userId === order.userId) {
-                console.log(`⚠️ [OrderBook] Skipping self-trade for user ${order.userId}`);
+                console.log(`[OrderBook] Skipping self-trade for user ${order.userId}`);
                 continue;
             }
             if(bid.price >= order.price && executedQty < order.quantity) {
@@ -170,6 +179,7 @@ export class OrderBook {
                     otherUserId: bid.userId,
                     markerOrderId: bid.orderId
                 });
+                console.log(`[OrderBook] Filled ${amountRemaining} @ ${bid.price} (trade #${this.lastTradeId - 1})`);
             }
         }
         for (let i = 0; i < this.bids.length; i++) {
@@ -179,6 +189,7 @@ export class OrderBook {
                 i--;
             }
         }
+        console.log(`[OrderBook] SELL match complete: ${executedQty}/${order.quantity} executed, ${fills.length} fills`);
         return {
             fills,
             executedQty
@@ -197,10 +208,12 @@ export class OrderBook {
     }
 
     addOrder(order:Order){
+        console.log(`[OrderBook] Adding ${order.side.toUpperCase()} order ${order.orderId}: ${order.quantity} @ ${order.price}`);
         if(order.side === "buy") {
             const {executedQty , fills} = this.matchBid(order);
             order.filled = executedQty;
             if (executedQty === order.quantity) {
+                console.log(`[OrderBook] Order fully filled`);
                 return {
                     executedQty,
                     fills
@@ -208,6 +221,7 @@ export class OrderBook {
             }
             this.bids.push(order);
             this.sortBids(); 
+            console.log(`[OrderBook] Remaining ${order.quantity - executedQty} added to order book`);
             return {
                 executedQty,
                 fills
@@ -217,6 +231,7 @@ export class OrderBook {
             const {executedQty, fills} = this.matchAsk(order);
             order.filled = executedQty;
             if (executedQty === order.quantity) {
+                console.log(`[OrderBook] Order fully filled`);
                 return {
                     executedQty,
                     fills
@@ -224,6 +239,7 @@ export class OrderBook {
             }
             this.asks.push(order);
             this.sortAsks();
+            console.log(`[OrderBook] Remaining ${order.quantity - executedQty} added to order book`);
             return {
                 executedQty,
                 fills
