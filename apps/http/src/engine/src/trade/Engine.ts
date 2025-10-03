@@ -62,6 +62,7 @@ export class Engine {
           }
           userBalance[quoteAsset].available -= required;
           userBalance[quoteAsset].locked += required;
+          return;
       }
 
       if (side === "sell") {
@@ -75,6 +76,7 @@ export class Engine {
           }
           userBalance[baseAsset].available -= quantity;
           userBalance[baseAsset].locked += quantity;
+          return;
       }
     }
 
@@ -95,7 +97,7 @@ export class Engine {
       const otherUserId = fill.otherUserId;
       const otherUserBalance = this.balances.get(otherUserId);
       if (!otherUserBalance) {
-        return null;
+        return;
       }
 
       if (side === "buy") {
@@ -195,84 +197,67 @@ export class Engine {
     switch (message.type) {
       case CREATE_ORDER:
         let fundsLocked = false;
-        let orderExecuted = false;  
         try {  
-            this.defaultBalance(message.data.userId);
+          this.defaultBalance(message.data.userId);
+          const baseAsset = message.data.market.split("_")[0];
+          const quoteAsset = message.data.market.split("_")[1];
+          const numPrice = Number(message.data.price);
+          const numQuantity = Number(message.data.quantity);
+
+          if (baseAsset && quoteAsset) {
+            this.checkAndLockFunds(
+              message.data.userId,  
+              message.data.side,  
+              quoteAsset,    
+              baseAsset,              
+              numPrice,               
+              numQuantity             
+            );
+            fundsLocked = true;
+          }
+          
+          const { executedQty, fills, orderId } = this.createOrder(
+            message.data.market,
+            message.data.price,
+            message.data.quantity,
+            message.data.side,
+            message.data.userId
+          );
+          
+          
+          RedisManager.getInstance().sendToApi(clientId, {
+            type: "ORDER_PLACED",
+            payload: { orderId, executedQty, fills }
+          });
+          
+        } catch (e) {
+          console.error("Order creation failed:", e);
+          
+          if (fundsLocked && message.data) {
             const baseAsset = message.data.market.split("_")[0];
             const quoteAsset = message.data.market.split("_")[1];
             const numPrice = Number(message.data.price);
             const numQuantity = Number(message.data.quantity);
-        
-            if (baseAsset && quoteAsset) {
-                this.checkAndLockFunds(
-                    message.data.userId,  
-                    message.data.side,  
-                    quoteAsset,    
-                    baseAsset,              
-                    numPrice,               
-                    numQuantity             
-                );
-                fundsLocked = true;
+            const userBalance = this.balances.get(message.data.userId);
+            
+            if (userBalance && baseAsset && quoteAsset) {
+              if (message.data.side === "buy" && userBalance[quoteAsset]) {
+                const amount = numQuantity * numPrice;
+                userBalance[quoteAsset].available += amount;
+                userBalance[quoteAsset].locked -= amount;
+              } else if (message.data.side === "sell" && userBalance[baseAsset]) {
+                userBalance[baseAsset].available += numQuantity;
+                userBalance[baseAsset].locked -= numQuantity;
+              }
             }
-            
-            const { executedQty, fills, orderId } = this.createOrder(
-                message.data.market,
-                message.data.price,
-                message.data.quantity,
-                message.data.side,
-                message.data.userId
-            );
-            
-            orderExecuted = true; 
-            
-            if (executedQty < numQuantity && baseAsset && quoteAsset) {
-                const userBalance = this.balances.get(message.data.userId);
-                if (userBalance) {
-                    const remaining = numQuantity - executedQty;
-                    
-                    if (message.data.side === "buy" && userBalance[quoteAsset]) {
-                        const refund = remaining * numPrice;
-                        userBalance[quoteAsset].available += refund;
-                        userBalance[quoteAsset].locked -= refund;
-                    } else if (userBalance[baseAsset]) {
-                        userBalance[baseAsset].available += remaining;
-                        userBalance[baseAsset].locked -= remaining;
-                    }
-                }
-            }
-            
-            RedisManager.getInstance().sendToApi(clientId, {
-                type: "ORDER_PLACED",
-                payload: { orderId, executedQty, fills }
-            });
-            
-        } catch (e) {
-            console.error("Order creation failed:", e);
-            
-            if (fundsLocked && !orderExecuted && message.data) {
-                const baseAsset = message.data.market.split("_")[0];
-                const quoteAsset = message.data.market.split("_")[1];
-                const numPrice = Number(message.data.price);
-                const numQuantity = Number(message.data.quantity);
-                const userBalance = this.balances.get(message.data.userId);
-                
-                if (userBalance && baseAsset && quoteAsset) {
-                    if (message.data.side === "buy" && userBalance[quoteAsset]) {
-                        const amount = numQuantity * numPrice;
-                        userBalance[quoteAsset].available += amount;
-                        userBalance[quoteAsset].locked -= amount;
-                    } else if (userBalance[baseAsset]) {
-                        userBalance[baseAsset].available += numQuantity;
-                        userBalance[baseAsset].locked -= numQuantity;
-                    }
-                }
-            }
-            RedisManager.getInstance().sendToApi(clientId, {
-                type: "ORDER_CANCELLED",
-                payload: { orderId: "", executedQty: 0, remainingQty: 0 }
-            });
           }
-          break;
+          
+          RedisManager.getInstance().sendToApi(clientId, {
+            type: "ORDER_CANCELLED",
+            payload: { orderId: "", executedQty: 0, remainingQty: 0 }
+          });
+        }
+        break;
         case CANCEL_ORDER:
           try {
             const orderId = message.data.orderId;
@@ -296,7 +281,7 @@ export class Engine {
               userBalance[quoteAsset].available += leftQuantity;  
               userBalance[quoteAsset].locked -= leftQuantity;
               if(price){
-                // return depth
+                this.UpdatedDepth(price.toString(), cancelMarket);
               }
             } else {
               const baseAsset = cancelMarket.split("_")[0];
@@ -310,7 +295,7 @@ export class Engine {
               userBalance[baseAsset].available += leftQuantity;  
               userBalance[baseAsset].locked -= leftQuantity;
               if(price){
-                // return depth
+                this.UpdatedDepth(price.toString(), cancelMarket);
               }}}
                 RedisManager.getInstance().sendToApi(clientId, {
                         type: "ORDER_CANCELLED",

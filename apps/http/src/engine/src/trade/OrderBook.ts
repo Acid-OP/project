@@ -44,7 +44,7 @@ export class OrderBook {
             const order = this.bids[i];
             if (order && typeof order.price === 'number') {
                 const priceKey = order.price.toString();
-                const availableQty = order.quantity - order.filled;  
+                const availableQty = order.quantity - (order.filled || 0);
                 bidsObj[priceKey] = (bidsObj[priceKey] ?? 0) + availableQty;
             }
         }
@@ -53,7 +53,7 @@ export class OrderBook {
             const order = this.asks[i];
             if (order && typeof order.price === 'number') {
                 const priceKey = order.price.toString();
-                const availableQty = order.quantity - order.filled; 
+                const availableQty = order.quantity - (order.filled || 0);
                 asksObj[priceKey] = (asksObj[priceKey] ?? 0) + availableQty; 
             }
         }
@@ -121,8 +121,7 @@ export class OrderBook {
                 continue;
             }
             if (ask.price <= order.price && executedQty < order.quantity) {
-                const filledQty = Math.min((order.quantity - executedQty), ask.quantity);
-            // remaining amount the buyer wants to buy And the total amount the seller has to sell
+                const filledQty = Math.min((order.quantity - executedQty), (ask.quantity - ask.filled));
                 executedQty += filledQty;
                 ask.filled += filledQty;
                 fills.push({
@@ -160,7 +159,7 @@ export class OrderBook {
                 continue;
             }
             if(bid.price >= order.price && executedQty < order.quantity) {
-                const amountRemaining = Math.min(order.quantity - executedQty, bid.quantity);
+               const amountRemaining = Math.min(order.quantity - executedQty, (bid.quantity - bid.filled));
                 executedQty += amountRemaining;
                 bid.filled += amountRemaining;
 
