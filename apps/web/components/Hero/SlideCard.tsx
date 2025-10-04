@@ -6,7 +6,7 @@ interface SlideCardProps {
 
 export default function SlideCard({ title, description, image }: SlideCardProps) {
   return (
-    <div className="relative w-full h-[450px] overflow-hidden">
+    <div className="relative w-full h-[350px] overflow-hidden">
       {/* Background Image */}
       <img 
         src={image} 

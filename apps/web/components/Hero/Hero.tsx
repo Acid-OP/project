@@ -18,7 +18,7 @@ export default function Hero() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <div className="relative rounded-2xl overflow-hidden border border-gray-800">
+      <div className="relative rounded-2xl overflow-hidden">
         <SlideCard {...slides[currentSlide]} />
         <CarouselDots slidesLength={slides.length} currentSlide={currentSlide} />
         <NavigationArrows nextSlide={nextSlide} prevSlide={prevSlide} />
