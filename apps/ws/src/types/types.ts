@@ -44,7 +44,4 @@ export type KlineUpdateMessage = {
   }
 };
 
-export type OutgoingMessage =
-  | TickerUpdateMessage
-  | DepthUpdateMessage
-  | KlineUpdateMessage;
+export type OutgoingMessage = TickerUpdateMessage | DepthUpdateMessage | KlineUpdateMessage;

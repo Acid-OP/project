@@ -1,3 +1,4 @@
+import { Broker } from "./Broker";
 import { User } from "./User";
 import { WebSocket } from "ws";
 
@@ -34,6 +35,8 @@ export class UserState {
     private registerOnClose(ws: WebSocket, id: string) {
         ws.on("close", () => {
             this.users.delete(id);
+            Broker.getInstance().userLeft(id);
+
         });
     }
 }

@@ -50,10 +50,7 @@ export class Broker {
     private redisCallbackHandler = (message: string, channel: string) => {
         const parsedMessage = JSON.parse(message);
         this.notifySubscribers(channel, parsedMessage);
-
-
     }
-
 
     public subscribe(userId: string, subscription: string) {
         if (this.subscriptions.get(userId)?.includes(subscription)) {
@@ -65,6 +62,44 @@ export class Broker {
         if (subscribers && subscribers.length === 1) {
             this.redisClient.subscribe(subscription, this.redisCallbackHandler);
         }
-
     }
+    private removeSubscriptionFromUser(userId: string, subscription: string) {
+        let userSubs = this.subscriptions.get(userId) || [];
+        userSubs = userSubs.filter(s => s !== subscription);
+        if (userSubs.length > 0) {
+            this.subscriptions.set(userId, userSubs);
+        } else {
+            this.subscriptions.delete(userId);
+        }
+    }
+
+    private removeUserFromChannel(subscription: string, userId: string) {
+        let users = this.channelUsers.get(subscription) || [];
+        users = users.filter(id => id !== userId);
+        if (users.length > 0) {
+            this.channelUsers.set(subscription, users);
+        } else {
+            this.channelUsers.delete(subscription);
+            this.redisClient.unsubscribe(subscription);
+        }
+    }
+
+    public unsubscribe(userId: string, subscription: string) {
+        this.removeSubscriptionFromUser(userId, subscription);
+        this.removeUserFromChannel(subscription, userId);
+    }
+    private unsubscribeAllForUser(userId: string) {
+        const userSubscriptions = this.subscriptions.get(userId);
+        if (!userSubscriptions) return;
+
+        for (const subscription of userSubscriptions) {
+            this.unsubscribe(userId, subscription);
+        }
+    }
+
+    public userLeft(userId: string) {
+        this.unsubscribeAllForUser(userId);
+    }
+
+
 }

@@ -24,7 +24,7 @@ export class User{
             }
 
             if(response.method === "UNSUBSCRIBE") {
-                
+                response.params.forEach(x => Broker.getInstance().unsubscribe(this.id, x));
             }
         })
     }
