@@ -27,20 +27,45 @@ export async function GET(request: NextRequest) {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
             },
+            cache: 'no-store', // Disable caching for real-time data
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error('Backpack API error:', {
+                status: response.status,
+                statusText: response.statusText,
+                data,
+                url
+            });
+            
+            return NextResponse.json(
+                { 
+                    error: 'Backpack API error', 
+                    details: data,
+                    status: response.status 
+                }, 
+                { status: response.status }
+            );
         }
 
-        const data = await response.json();
         return NextResponse.json(data);
         
-    } catch (error) {
-        console.error('Proxy error:', error);
+    } catch (error: any) {
+        console.error('Proxy error:', {
+            message: error.message,
+            stack: error.stack,
+            endpoint
+        });
+        
         return NextResponse.json(
-            { error: 'Failed to fetch data from Backpack Exchange' }, 
+            { 
+                error: 'Failed to fetch data from Backpack Exchange',
+                details: error.message 
+            }, 
             { status: 500 }
         );
     }

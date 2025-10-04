@@ -26,28 +26,54 @@ export class SignalingManager {
             this.bufferedMessages = [];
         }
         this.ws.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            const type = message.data.e;
-            if (this.callbacks[type]) {
-                this.callbacks[type].forEach(({ callback }) => {
-                    if (type === "ticker") {
-                        const newTicker: Partial<Ticker> = {
-                            lastPrice: message.data.c,
-                            high: message.data.h,
-                            low: message.data.l,
-                            volume: message.data.v,
-                            quoteVolume: message.data.V,
-                            symbol: message.data.s,
+            try {
+                const message = JSON.parse(event.data);
+                
+                // Add defensive checks for message structure
+                if (!message || !message.data) {
+                    console.warn("Received malformed message:", message);
+                    return;
+                }
+
+                const type = message.data.e;
+                
+                if (!type) {
+                    console.warn("Message missing type (e property):", message);
+                    return;
+                }
+
+                if (this.callbacks[type]) {
+                    this.callbacks[type].forEach(({ callback }) => {
+                        if (type === "ticker") {
+                            const newTicker: Partial<Ticker> = {
+                                lastPrice: message.data.c,
+                                high: message.data.h,
+                                low: message.data.l,
+                                volume: message.data.v,
+                                quoteVolume: message.data.V,
+                                symbol: message.data.s,
+                            }
+                            console.log("Ticker update:", newTicker);
+                            callback(newTicker);
                         }
-                        console.log(newTicker);
-                        callback(newTicker);
-                   }
-                   if (type === "depth") {
-                    const updatedBids = message.data.b;
-                    const updatedAsks = message.data.a;
-                    callback({ bids: updatedBids, asks: updatedAsks })
-                }})
+                        if (type === "depth") {
+                            const updatedBids = message.data.b;
+                            const updatedAsks = message.data.a;
+                            callback({ bids: updatedBids, asks: updatedAsks })
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Error parsing WebSocket message:", error, event.data);
             }
+        }
+
+        this.ws.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        }
+
+        this.ws.onclose = () => {
+            console.log("WebSocket connection closed");
         }
     }
 

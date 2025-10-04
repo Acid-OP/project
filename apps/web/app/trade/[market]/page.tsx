@@ -1,28 +1,29 @@
-"use client";
+"use client"
 import { useParams } from "next/navigation";
-// import { MarketBar } from "../../../components/MarketBar";
-import { TradeView } from "../../../components/TradeView";
 import { Depth } from "../../../components/depth/Depth.";
-import { SwapUI } from "../../../components/SwapUI";
 import { MarketBar } from "../../../components/MarketBar";
+import { SwapUI } from "../../../components/SwapUI";
+import { TradeView } from "../../../components/TradeView";
 
-export default function Page() {
+export default function Home() {
     const { market } = useParams();
-    return <div className="flex flex-row flex-1">
-        <div className="flex flex-col flex-1">
-            <MarketBar market={market as string} />
-            <div className="flex flex-row h-[920px] border-y border-slate-800">
-                <div className="flex flex-col flex-1">
-                    {/* <TradeView market={market as string} /> */}
+    return <div className="flex flex-row h-screen max-h-screen overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="shrink-0">
+                <MarketBar market={market as string} />
+            </div>
+            <div className="flex flex-row flex-1 min-h-0 border-y border-slate-800 overflow-hidden">
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                    <TradeView market={market as string} />
                 </div>
-                <div className="flex flex-col w-[250px] overflow-hidden">
+                <div className="flex flex-col w-[250px] min-h-0 overflow-hidden">
                     <Depth market={market as string} /> 
                 </div>
             </div>
         </div>
-        <div className="w-[10px] flex-col border-slate-800 border-l"></div>
-        <div>
-            <div className="flex flex-col w-[250px]">
+        <div className="w-[10px] flex-col border-slate-800 border-l shrink-0"></div>
+        <div className="shrink-0 overflow-hidden">
+            <div className="flex flex-col w-[250px] h-screen max-h-screen overflow-hidden">
                 <SwapUI market={market as string} />
             </div>
         </div>
