@@ -1,21 +1,22 @@
 import { User } from "./User";
 import { WebSocket } from "ws";
 
-export class UserManager {
-    private static instance: UserManager;
+export class UserState {
+    private static instance: UserState;
     private users: Map<string, User> = new Map();
     private constructor() {
     }
 
     public static getInstance(){
         if(!this.instance) {
-            this.instance = new UserManager();
+            this.instance = new UserState();
         }
         return this.instance;
     }
 
     public addUser(ws: WebSocket) {
         const id = this.getRandomId();
+        // @ts-ignore
         const user = new User(id, ws);
         this.users.set(id, user);
         this.registerOnClose(ws, id);

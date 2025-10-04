@@ -1,6 +1,6 @@
 import { WebSocketServer } from "ws";
 import dotenv from "dotenv";
-import { UserManager } from "./UserManager";
+import { UserState } from "./UserState";
 
 dotenv.config();
 
@@ -15,5 +15,5 @@ const port = Number(portEnv);
 const wss = new WebSocketServer({ port });
 
 wss.on("connection", (ws) => {
-  UserManager.getInstance().addUser(ws);
+  UserState.getInstance().addUser(ws);
 });
