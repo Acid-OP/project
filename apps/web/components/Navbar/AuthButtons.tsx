@@ -1,12 +1,36 @@
+interface ButtonProps {
+  variant: 'outline' | 'solid';
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+function Button({ variant, children, onClick }: ButtonProps) {
+  const baseStyles = "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer";
+  
+  const variantStyles = {
+    outline: "bg-[#0d2c24] border border-[#0d2c24] text-[#00D395] hover:bg-[#0d2c24]/60 hover:text-[#00D395]/80",
+    solid: "bg-[#18243a] border border-[#18243a] text-[#3E7EE2] hover:bg-[#18243a]/60 hover:text-[#3E7EE2]/80"
+  };
+
+  return (
+    <button 
+      onClick={onClick}
+      className={`${baseStyles} ${variantStyles[variant]}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function AuthButtons() {
   return (
-    <div className="flex items-center space-x-4 ml-auto">
-      <button className="bg-[#4d4f5b] text-[#00bd63] hover:opacity-90 font-medium px-4 py-2 rounded-lg transition-colors">
+    <div className="flex items-center space-x-3 ml-auto">
+      <Button variant="outline">
         Sign up
-      </button>
-      <button className="bg-[#00bd63] text-[#3e7ee2] hover:opacity-90 px-4 py-2 rounded-lg font-medium transition-colors">
+      </Button>
+      <Button variant="solid">
         Sign in
-      </button>
+      </Button>
     </div>
   );
 }
