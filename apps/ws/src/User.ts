@@ -18,14 +18,18 @@ export class User{
 
     private eventListners() {
         this.ws.on("message", (message:string)=>{
-            const response: IncomingMessage = JSON.parse(message);
-            if(response.method === "SUBSCRIBE") {
-                response.params.forEach(x => Broker.getInstance().subscribe(this.id, x));
+            try{
+                const response: IncomingMessage = JSON.parse(message);
+                if(response.method === "SUBSCRIBE") {
+                    response.params.forEach(x => Broker.getInstance().subscribe(this.id, x));
+                }
+                if(response.method === "UNSUBSCRIBE") {
+                    response.params.forEach(x => Broker.getInstance().unsubscribe(this.id, x));
+                }
+            }catch(e){
+                console.error("Invalid WS message:");
             }
 
-            if(response.method === "UNSUBSCRIBE") {
-                response.params.forEach(x => Broker.getInstance().unsubscribe(this.id, x));
-            }
         })
     }
 }

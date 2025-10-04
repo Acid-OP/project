@@ -1,5 +1,5 @@
 import { RedisManager } from "../RedisManager";
-import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, MessageFromApi } from "../types/market";
+import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, MessageFromApi } from "../types/ApiMessages";
 import { Fill, Order, OrderBook } from "./OrderBook";
 
 interface UserBalance {
@@ -323,31 +323,31 @@ export class Engine {
             console.error("Error during CANCEL_ORDER:", e);
           }
           break;
-        case GET_DEPTH:
-              try{
-                console.log(`[Engine] Getting depth for ${message.data.market}`);
-                 const market = message.data.market;
-                 const orderbook = this.orderbooks.find(x => x.getMarketPair() === market);
-                 if(!orderbook){
-                  return null;
-                 }
-                 RedisManager.getInstance().sendToApi(clientId,{
-                  type:"DEPTH", 
-                  payload: orderbook.getDepth()
-                });
-                } catch(e){
-                  RedisManager.getInstance().sendToApi(clientId, {
-                    type: "DEPTH",
-                    payload: {
-                      bids: [],
-                      asks: []
-                    }
-                  });
+      case GET_DEPTH:
+            try{
+              console.log(`[Engine] Getting depth for ${message.data.market}`);
+                const market = message.data.market;
+                const orderbook = this.orderbooks.find(x => x.getMarketPair() === market);
+                if(!orderbook){
+                return null;
                 }
-                break;
-        default:
-          console.warn("⚠️ Unknown message type:");
-      }
+                RedisManager.getInstance().sendToApi(clientId,{
+                type:"DEPTH", 
+                payload: orderbook.getDepth()
+              });
+              } catch(e){
+                RedisManager.getInstance().sendToApi(clientId, {
+                  type: "DEPTH",
+                  payload: {
+                    bids: [],
+                    asks: []
+                  }
+                });
+              }
+              break;
+      default:
+        console.warn("⚠️ Unknown message type:");
+    }
     }
 
   public getBalance(userId: string) {
