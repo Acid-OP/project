@@ -6,14 +6,22 @@ interface SlideCardProps {
 
 export default function SlideCard({ title, description, image }: SlideCardProps) {
   return (
-    <div className="flex items-center justify-between p-12">
-      <div className="flex-1">
-        <h1 className="text-5xl font-bold text-white mb-4">{title}</h1>
-        <p className="text-xl text-gray-400">{description}</p>
-      </div>
-      <div className="flex-1 flex justify-end">
-        <div className="relative w-80 h-80">
-          <img src={image} alt={title} className="w-full h-full object-cover rounded-lg" />
+    <div className="relative w-full h-[450px] overflow-hidden">
+      {/* Background Image */}
+      <img 
+        src={image} 
+        alt={title} 
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent"></div>
+      
+      {/* Content */}
+      <div className="relative z-10 flex items-center h-full p-12">
+        <div className="max-w-2xl">
+          <h1 className="text-5xl font-bold text-white mb-4">{title}</h1>
+          <p className="text-xl text-gray-200">{description}</p>
         </div>
       </div>
     </div>

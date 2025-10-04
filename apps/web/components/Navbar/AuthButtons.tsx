@@ -5,7 +5,7 @@ interface ButtonProps {
 }
 
 function Button({ variant, children, onClick }: ButtonProps) {
-  const baseStyles = "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer";
+  const baseStyles = "px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer";
   
   const variantStyles = {
     outline: "bg-[#0d2c24] border border-[#0d2c24] text-[#00D395] hover:bg-[#0d2c24]/60 hover:text-[#00D395]/80",

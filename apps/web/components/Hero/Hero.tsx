@@ -17,8 +17,8 @@ export default function Hero() {
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#0f0f0f] rounded-2xl overflow-hidden border border-gray-800">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div className="relative rounded-2xl overflow-hidden border border-gray-800">
         <SlideCard {...slides[currentSlide]} />
         <CarouselDots slidesLength={slides.length} currentSlide={currentSlide} />
         <NavigationArrows nextSlide={nextSlide} prevSlide={prevSlide} />
