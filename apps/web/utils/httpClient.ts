@@ -2,7 +2,7 @@ import axios from "axios";
 import { Depth, KLine, Ticker, Trade } from "./type";
 
 // Use your Next.js API proxy instead of direct Backpack API calls
-const BASE_URL = "/api/backpack";
+const BASE_URL = "http://localhost:3003/api/v1";
 
 export async function getTicker(market: string): Promise<Ticker> {
     // Get single ticker by symbol
