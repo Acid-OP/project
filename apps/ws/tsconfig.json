@@ -3,7 +3,7 @@
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",
-    "module": "ESNext",
+    "module": "CommonJS",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
@@ -11,9 +11,9 @@
     "outDir": "./dist",
 
     // Bundler mode
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowImportingTsExtensions": false,
-    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,         // Add this
     "noEmit": false,
 
     // Best practices

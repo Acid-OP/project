@@ -1,9 +1,7 @@
 {
   "name": "ws",
   "version": "1.0.0",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
+  "main": "index.js",
   "scripts": {
     "dev": "pnpm run build && pnpm run start",
     "build": "tsc -b",

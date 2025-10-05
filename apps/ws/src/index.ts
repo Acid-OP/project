@@ -14,6 +14,17 @@ const port = Number(portEnv);
 
 const wss = new WebSocketServer({ port });
 
+console.log(`🌐 [WebSocket] Server starting on port ${port}`);
+
 wss.on("connection", (ws) => {
+  console.log(`🔌 [WebSocket] New client connected`);
   UserState.getInstance().addUser(ws);
+});
+
+wss.on("listening", () => {
+  console.log(`✅ [WebSocket] Server listening on port ${port}`);
+});
+
+wss.on("error", (error) => {
+  console.error("❌ [WebSocket] Server error:", error);
 });
