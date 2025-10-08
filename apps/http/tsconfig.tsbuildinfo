@@ -1,1 +1,1 @@
-{"root":["./src/redismanager.ts","./src/index.ts","./src/engine/src/redismanager.ts","./src/engine/src/index.ts","./src/engine/src/trade/engine.ts","./src/engine/src/trade/orderbook.ts","./src/engine/src/types/apimessages.ts","./src/engine/src/types/market.ts","./src/routes/orderrouter.ts","./src/types/index.ts"],"version":"5.8.3"}
+{"root":["./src/index.ts","./src/engine/engine.ts","./src/engine/dequeue.ts"],"version":"5.8.3"}
