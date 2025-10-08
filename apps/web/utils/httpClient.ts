@@ -5,7 +5,6 @@ import { Depth, KLine, Ticker, Trade } from "./type";
 const BASE_URL = "http://localhost:3003/api/v1";
 
 export async function getTicker(market: string): Promise<Ticker> {
-    // Get single ticker by symbol
     const response = await axios.get(`${BASE_URL}?endpoint=/ticker&symbol=${market}`);
     return response.data;
 }

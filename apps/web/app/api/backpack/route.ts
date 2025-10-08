@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKPACK_BASE_URL = 'https://api.backpack.exchange/api/v1';
+const YOUR_BACKEND_URL = 'http://localhost:3003/api/v1';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Forward all query parameters except 'endpoint'
         const forwardParams = new URLSearchParams();
         searchParams.forEach((value, key) => {
             if (key !== 'endpoint') {
@@ -19,9 +18,9 @@ export async function GET(request: NextRequest) {
             }
         });
         
-        const url = `${BACKPACK_BASE_URL}${endpoint}${forwardParams.toString() ? '?' + forwardParams.toString() : ''}`;
+        const url = `${YOUR_BACKEND_URL}${endpoint}${forwardParams.toString() ? '?' + forwardParams.toString() : ''}`;
         
-        console.log('Fetching:', url); // For debugging
+        console.log('Fetching:', url);
         
         const response = await fetch(url, {
             method: 'GET',
@@ -29,44 +28,20 @@ export async function GET(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             },
-            cache: 'no-store', // Disable caching for real-time data
+            cache: 'no-store',
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            console.error('Backpack API error:', {
-                status: response.status,
-                statusText: response.statusText,
-                data,
-                url
-            });
-            
-            return NextResponse.json(
-                { 
-                    error: 'Backpack API error', 
-                    details: data,
-                    status: response.status 
-                }, 
-                { status: response.status }
-            );
+            console.error('Backend API error:', data);
+            return NextResponse.json({ error: 'Backend API error', details: data }, { status: response.status });
         }
 
         return NextResponse.json(data);
         
     } catch (error: any) {
-        console.error('Proxy error:', {
-            message: error.message,
-            stack: error.stack,
-            endpoint
-        });
-        
-        return NextResponse.json(
-            { 
-                error: 'Failed to fetch data from Backpack Exchange',
-                details: error.message 
-            }, 
-            { status: 500 }
-        );
+        console.error('Proxy error:', error.message);
+        return NextResponse.json({ error: 'Failed to fetch data', details: error.message }, { status: 500 });
     }
 }
