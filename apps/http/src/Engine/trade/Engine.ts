@@ -1,8 +1,9 @@
-import { CREATE_ORDER } from "../types/orders";
+import { CREATE_ORDER } from "../../types/orders";
+import { RedisManager } from "../RedisManager";
+import { ResponseFromHTTP } from "../types/responses";
+import { BASE_CURRENCY, Fill, Order, UserBalance, userIdd } from "../types/UserTypes";
 import { OrderBook } from "./OrderBook";
-import { RedisManager } from "./RedisManager";
-import { ResponseFromHTTP } from "./types/responses";
-import { userIdd , UserBalance, BASE_CURRENCY, Order, Fill } from "./types/UserTypes";
+
 const redisManager = new RedisManager();
 export class Engine {
     private orderBooks:OrderBook[] = [];

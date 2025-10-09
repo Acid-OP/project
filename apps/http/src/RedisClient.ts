@@ -20,12 +20,18 @@ export class Manager {
     
     }
 
-    public async Enqueue(message:any) {
-        const id = this.getRandomClientId();
-        const dataToQueue = {
-          clientId: id,
-          message
-        };
-        await this.client.lPush("body", JSON.stringify(dataToQueue));
+    public async Enqueue(message: any) {
+        return new Promise((resolve, reject) => {
+            const id = this.getRandomClientId();
+            const dataToQueue = { clientId: id, message };
+
+            this.client.subscribe(id, (msg) => {
+                console.log(`✅ Got response for ${id}:`, msg);
+                this.client.unsubscribe(id);
+                resolve(JSON.parse(msg));
+            });
+            this.client.lPush("body", JSON.stringify(dataToQueue)).catch(reject);
+        });
     }
+
 }

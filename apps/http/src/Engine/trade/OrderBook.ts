@@ -1,5 +1,5 @@
-import { BASE_CURRENCY, Fill } from "./types/UserTypes";
-import { Order } from "./types/UserTypes";
+import { BASE_CURRENCY, Fill, Order } from "../types/UserTypes";
+
 
 export class OrderBook {
     bids: Order[];

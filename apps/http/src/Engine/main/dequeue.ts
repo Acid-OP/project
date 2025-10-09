@@ -1,4 +1,4 @@
-import { Engine } from "./Engine";
+import { Engine } from "../trade/Engine";
 const { createClient } = require("redis"); 
 const client = createClient();
 
