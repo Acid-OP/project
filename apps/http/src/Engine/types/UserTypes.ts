@@ -1,3 +1,12 @@
+export const BASE_CURRENCY = "USD";
+export type userIdd = string;
+export interface UserBalance {
+    [key: string]: {
+        available: number;
+        locked: number;
+    }
+}
+
 export interface Order {
   price: number;
   quantity: number;
@@ -5,4 +14,12 @@ export interface Order {
   filled: number;
   side: "buy" | "sell";
   userId: string;
+}
+
+export interface Fill {
+    price: string;
+    qty: number;
+    tradeId: number;
+    otherUserId: string;
+    markerOrderId: string;
 }

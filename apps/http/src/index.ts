@@ -3,16 +3,26 @@ import { createClient } from "redis";
 import dotenv from "dotenv";
 import "./Engine/dequeue";
 import { Manager } from "./RedisClient";
+import { CREATE_ORDER } from "./types/orders";
 dotenv.config();
 const app = express();
 app.use(express.json());
-const PORT = process.env.HTTP_PORT || 3000;
+const PORT = process.env.HTTP_PORT;
 
 app.post("/order", async (req, res) => {
     const { market, price, quantity, side, userId } = req.body;
-    console.log("sent order from API");
     try {
-      await Manager.getInstance().Enqueue(req.body);
+      const data = {
+        type: CREATE_ORDER,
+        data: {
+          market,
+          price,
+          quantity,
+          side,
+          userId
+        }
+      }
+      await Manager.getInstance().Enqueue(data);
       res.status(200).send({ message: "Order queued" });
     } catch (err) {
       res.status(500).send({ error: "Failed to queue order" });
