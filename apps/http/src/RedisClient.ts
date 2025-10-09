@@ -1,4 +1,5 @@
 import { createClient, RedisClientType } from "redis";
+import { ResponseFromOrderbook } from "./types/responses";
 
 export class Manager {
     private client: RedisClientType;
@@ -20,8 +21,8 @@ export class Manager {
     
     }
 
-    public async Enqueue(message: any) {
-        return new Promise((resolve, reject) => {
+    public async Enqueue(message:any) {
+        return new Promise<ResponseFromOrderbook>((resolve, reject) => {
             const id = this.getRandomClientId();
             const dataToQueue = { clientId: id, message };
 

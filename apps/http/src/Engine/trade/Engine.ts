@@ -3,8 +3,7 @@ import { RedisManager } from "../RedisManager";
 import { ResponseFromHTTP } from "../types/responses";
 import { BASE_CURRENCY, Fill, Order, UserBalance, userIdd } from "../types/UserTypes";
 import { OrderBook } from "./OrderBook";
-
-const redisManager = new RedisManager();
+export const CANCEL_ORDER = "CANCEL_ORDER";
 export class Engine {
     private orderBooks:OrderBook[] = [];
     private balances: Map<userIdd , UserBalance> = new Map();
@@ -66,27 +65,17 @@ export class Engine {
         });
     }
 
-    private createOrder(market: string,price: string,quantity: string,side: "buy" | "sell",userId: string ) {
+    private createOrder(market: string,price: number,quantity: number,side: "buy" | "sell",userId: string ) {
         const orderbook = this.orderBooks.find(x => x.getMarketPair() === market);
         if(!orderbook){
             return
-        }
-         const numprice = Number(price);
-         const numquantity = Number(quantity);
-
-        if (isNaN(numprice) || numprice <= 0) {
-            throw new Error("Invalid price");
-        }
-        
-        if (isNaN(numquantity) || numquantity <= 0) {
-            throw new Error("Invalid quantity");
         }
 
         const orderId = () => Math.random().toString(36).substring(2,15) + Math.random().toString(36).substring(2,15);
 
         const order: Order = {
-            price: numprice,
-            quantity: numquantity,
+            price: price,
+            quantity: quantity,
             orderId: orderId(),
             filled: 0,
             side,
@@ -108,18 +97,11 @@ export class Engine {
         if(!userId) {
             return
         }
-        if (this.balances.has(userId)) {
-            const userbalances = this.balances.get(userId);
-            if(!userbalances) {
-                const defaultBalance = {
-                    [BASE_CURRENCY]: {
-                        available : 10000,
-                        locked: 0
-                    }
-                }
-                this.balances.set(userId , defaultBalance)
-            }
-
+        if (!this.balances.has(userId)) {
+            const defaultBalance = {
+                [BASE_CURRENCY]: { available: 10000, locked: 0 }
+            };
+            this.balances.set(userId, defaultBalance);
         }
     }
 
@@ -151,6 +133,14 @@ export class Engine {
             userBalance[quoteAsset].locked += required;
             return;
         }
+        if (side === "sell") {
+            const available = userBalance[baseAsset]?.available || 0;
+            if (available < quantity) throw new Error("Insufficient base asset");
+            if(userBalance[baseAsset]){
+            userBalance[baseAsset].available -= quantity;
+            userBalance[baseAsset].locked += quantity;
+        }}
+
     }
     async process({message , clientId}: {message:ResponseFromHTTP , clientId:string}) {
         switch(message.type) {
@@ -164,6 +154,8 @@ export class Engine {
                     const numprice = Number(message.data.price);
                     const numquantity = Number(message.data.quantity);
 
+                    if (isNaN(numprice) || numprice <= 0) throw new Error("Invalid price");
+                    if (isNaN(numquantity) || numquantity <= 0) throw new Error("Invalid quantity");
                     if (!baseAsset || !quoteAsset) {
                         throw new Error("Invalid market format");
                     }
@@ -179,8 +171,8 @@ export class Engine {
                     this.checkAndLockFunds(message.data.userId , message.data.side ,quoteAsset , baseAsset , numprice , numquantity)
                     const createorder = this.createOrder(
                         message.data.market,
-                        message.data.price,
-                        message.data.quantity,
+                        numprice,
+                        numquantity,
                         message.data.side,
                         message.data.userId
                     )
@@ -188,7 +180,7 @@ export class Engine {
                         throw new Error("Order creation failed — market not found");
                     }
                     const { executedQty, fills, orderId } = createorder;
-                    redisManager.ResponseToHTTP(clientId, {
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
                         type: "ORDER_PLACED",
                         payload: { orderId, executedQty, fills }
                     });
@@ -204,7 +196,7 @@ export class Engine {
                             console.error(`[Engine] Could not rollback funds - balance not found`);
                         }
                   }
-                    redisManager.ResponseToHTTP(clientId, {
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
                         type: "ORDER_CANCELLED",
                         payload: { 
                             orderId: "", 
@@ -214,6 +206,8 @@ export class Engine {
                     });
                 }
                 break;
+            case CANCEL_ORDER:
+
         }
     }
 }

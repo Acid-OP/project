@@ -1,10 +1,11 @@
 export const BASE_CURRENCY = "USD";
 export type userIdd = string;
+
 export interface UserBalance {
     [key: string]: {
         available: number;
         locked: number;
-    }
+    };
 }
 
 export interface Order {

@@ -1,9 +1,8 @@
 import express from "express";
-import { createClient } from "redis";
 import dotenv from "dotenv";
 import "./Engine/main/dequeue";
 import { Manager } from "./RedisClient";
-import { CREATE_ORDER } from "./types/orders";
+import { CREATE_ORDER} from "./types/orders";
 dotenv.config();
 const app = express();
 app.use(express.json());
@@ -23,7 +22,7 @@ app.post("/order", async (req, res) => {
         }
       }
       const response = await Manager.getInstance().Enqueue(data);
-      res.json(response.payload)
+      res.json(response.payload);
     } catch (err) {
       res.status(500).send({ error: "Failed to queue order" });
     }

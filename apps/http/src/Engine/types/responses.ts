@@ -1,7 +1,8 @@
 export type SIDE = "buy" | "sell";
 export type CREATE_ORDER = "CREATE_ORDER"
+export type CANCEL_ORDER = "CANCEL_ORDER"
 
-export interface ResponseFromHTTP {
+export type ResponseFromHTTP = {
     type: CREATE_ORDER;
     data: {
         market: string;
@@ -10,7 +11,13 @@ export interface ResponseFromHTTP {
         side: SIDE;
         userId: string;
     };
-}
+} | {
+    type: CANCEL_ORDER,
+    data: {
+        orderId: string,
+        market: string,
+    }
+} 
 
 export type ResponseToHTTP = {
   type: "ORDER_PLACED",
