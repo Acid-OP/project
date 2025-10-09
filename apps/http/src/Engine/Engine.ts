@@ -1,8 +1,9 @@
 import { CREATE_ORDER } from "../types/orders";
 import { OrderBook } from "./OrderBook";
+import { RedisManager } from "./RedisManager";
 import { ResponseFromHTTP } from "./types/responses";
 import { userIdd , UserBalance, BASE_CURRENCY, Order, Fill } from "./types/UserTypes";
-
+const redisManager = new RedisManager();
 export class Engine {
     private orderBooks:OrderBook[] = [];
     private balances: Map<userIdd , UserBalance> = new Map();
@@ -186,9 +187,32 @@ export class Engine {
                         throw new Error("Order creation failed — market not found");
                     }
                     const { executedQty, fills, orderId } = createorder;
+                    redisManager.ResponseToHTTP(clientId, {
+                        type: "ORDER_PLACED",
+                        payload: { orderId, executedQty, fills }
+                    });
                 } catch(e) {
-
+                    if (lockedAsset && message.data) {
+                        const userBalance = this.balances.get(message.data.userId);
+                        const assetBalance = userBalance?.[lockedAsset];
+                        
+                        if (assetBalance) {
+                            assetBalance.available += lockedAmount;
+                            assetBalance.locked -= lockedAmount;
+                        } else {
+                            console.error(`[Engine] Could not rollback funds - balance not found`);
+                        }
+                  }
+                    redisManager.ResponseToHTTP(clientId, {
+                        type: "ORDER_CANCELLED",
+                        payload: { 
+                            orderId: "", 
+                            executedQty: 0, 
+                            remainingQty: 0,
+                        }
+                    });
                 }
+                break;
         }
     }
 }
