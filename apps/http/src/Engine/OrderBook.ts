@@ -38,7 +38,7 @@ export class OrderBook {
             if(ask.userId === order.userId){
                 continue;
             }
-            if(ask.price<order.price && executedQty<order.quantity) {
+            if(ask.price<=order.price && executedQty<order.quantity) {
                 const filledQty = Math.min((order.quantity - executedQty), (ask.quantity - ask.filled));
                 executedQty += filledQty;
                 ask.filled += filledQty;
@@ -57,25 +57,75 @@ export class OrderBook {
         }
         return {fills , executedQty};
     }
+
+    matchAsk(order:Order) {
+        this.sortBids();
+        const fills:Fill[] = [];
+        let executedQty = 0;
+
+        for (let i=0 ; i<this.bids.length; i++) {
+            const bid = this.bids[i];
+            if(!bid) continue;
+            if(bid.userId === order.userId) {
+                continue
+            }
+            if(bid.price >= order.price && executedQty < order.quantity) {
+                const amountRemaining = Math.min(order.quantity - executedQty, (bid.quantity - bid.filled));
+                executedQty += amountRemaining;
+                bid.filled += amountRemaining;
+
+                fills.push({
+                    price: bid.price.toString(),
+                    qty: amountRemaining,
+                    tradeId: this.lastTradeId++,
+                    otherUserId: bid.userId,
+                    markerOrderId: bid.orderId
+                });
+            }
+            if (bid && bid.filled === bid.quantity) {
+                this.bids.splice(i, 1);
+                i--;
+            }
+        }
+        return {executedQty , fills};
+    }
+
     addOrder(order:Order) {
         if(order.side === "buy") {
             const {executedQty , fills} = this.matchBid(order);
             order.filled = executedQty;
             if (executedQty === order.quantity) {
-                console.log(`[OrderBook] Order fully filled`);
                 return {
                     executedQty,
                     fills
                 }
             }
-            this.bids.push(order);
+            if(order.quantity > 0){
+                this.bids.push(order);
+            }
             this.sortBids(); 
-            console.log(`[OrderBook] Remaining ${order.quantity - executedQty} added to order book`);
             return {
                 executedQty,
                 fills
             }
 
+        } else {
+            const {executedQty, fills} = this.matchAsk(order);
+            order.filled = executedQty;
+            if (executedQty === order.quantity) {
+                return {
+                    executedQty,
+                    fills
+                }
+            }
+            if(order.quantity > 0){
+                this.asks.push(order);
+            }
+            this.sortAsks();
+            return{
+                executedQty,
+                fills
+            }
         }
     }
 }

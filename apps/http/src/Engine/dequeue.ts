@@ -8,7 +8,7 @@ async function main() {
   while (true) {
     const obj = await client.rPop("body");
     if (obj) {
-          engine.process(JSON.parse(obj));
+      engine.process(JSON.parse(obj));
     }
   }
 }
