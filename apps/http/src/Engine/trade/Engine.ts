@@ -1,6 +1,6 @@
-import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH } from "../../types/orders";
+import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_TICKER } from "../../types/orders";
 import { RedisManager } from "../RedisManager";
-import { ResponseFromHTTP } from "../types/responses";
+import { DepthData, ResponseFromHTTP, TickerData, TradeData } from "../types/responses";
 import { BASE_CURRENCY, Fill, Order, UserBalance, userId } from "../types/UserTypes";
 import { OrderBook } from "./OrderBook";
 export class Engine {
@@ -89,9 +89,80 @@ export class Engine {
         if(baseAsset && quoteAsset) {
             this.updateBalancesAfterTrade(userId, fills, side, baseAsset, quoteAsset);
         }
-        
+
+        const affectedPrices = new Set(fills.map(f => f.price));
+        affectedPrices.forEach(price => {
+            this.UpdatedDepth(price, market);
+        });
+
+        if (executedQty < order.quantity) {
+            this.UpdatedDepth(order.price.toString(), market);
+        }
+        if (fills.length > 0) {
+            this.publishTrades(fills, market,side);
+        }
+         
         return { executedQty, fills, orderId: order.orderId };
     }
+    private latestTickers: Record<string, any> = {};
+    private publishTrades(fills: Fill[], market: string, side: "buy" | "sell") {
+        fills.forEach(fill => {
+            const tradeData: TradeData = {
+                event: "trade",
+                tradeId: fill.tradeId,
+                price: fill.price,
+                quantity: fill.qty.toString(),
+                symbol: market,
+                side: side,
+                timestamp: Date.now()
+            };
+
+            RedisManager.getInstance().Publish(`trade@${market}`, {
+                stream: `trade@${market}`,
+                data: tradeData
+            });
+        });
+        
+        const priceGroups = new Map<string, number>();
+        fills.forEach(fill => {
+            const currentQty = priceGroups.get(fill.price) || 0;
+            priceGroups.set(fill.price, currentQty + fill.qty);
+        });
+        
+        priceGroups.forEach((totalQty, price) => {
+            const tickerData: TickerData = {
+                event: "ticker",
+                symbol: market,
+                price: price,
+                quantity: totalQty.toString(),
+                side: side,
+                timestamp: Date.now()
+            };
+            
+            RedisManager.getInstance().Publish(`ticker@${market}`, {
+                stream: `ticker@${market}`,
+                data: tickerData
+            });
+        });
+        
+        if (fills.length > 0) {
+            const lastFill = fills[fills.length - 1];
+            if(!lastFill){
+                return;
+            }
+            const lastPriceQty = priceGroups.get(lastFill.price) || 0;
+            
+            this.latestTickers[market] = {
+                event: "ticker",
+                symbol: market,
+                price: lastFill.price,
+                quantity: lastPriceQty.toString(),
+                side: side,
+                timestamp: Date.now()
+            };
+        }
+    }
+    
     private defaultBalances(userId:string) {
         if(!userId) {
             return
@@ -156,13 +227,16 @@ export class Engine {
         const updatedBids = aggregatedBids.filter(x => x[0] === price);
         const updatedAsks = aggregatedAsks.filter(x => x[0] === price);
 
+        const depthData: DepthData = {
+            event: "depth",
+            symbol: market,
+            asks: updatedAsks.length ? updatedAsks : [[price, "0"]],
+            bids: updatedBids.length ? updatedBids : [[price, "0"]],
+            timestamp: Date.now(),
+        };
         RedisManager.getInstance().Publish(`depth@${market}`, {
             stream: `depth@${market}`,
-            data: {
-                a:updatedAsks.length ? updatedAsks : [[price, "0"]],
-                b:updatedBids.length ? updatedBids : [[price, "0"]],
-                e: "depth"
-            }
+            data: depthData
         });
     }
     async process({message , clientId}: {message:ResponseFromHTTP , clientId:string}) {
@@ -192,6 +266,7 @@ export class Engine {
                     }
 
                     this.checkAndLockFunds(message.data.userId , message.data.side ,quoteAsset , baseAsset , numprice , numquantity)
+                   
                     const createorder = this.createOrder(
                         message.data.market,
                         numprice,
@@ -199,6 +274,7 @@ export class Engine {
                         message.data.side,
                         message.data.userId
                     )
+                    
                     if (!createorder) {
                         throw new Error("Order creation failed — market not found");
                     }
@@ -325,6 +401,33 @@ export class Engine {
                     });
                 }
                 break;
+            case GET_TICKER:
+                try {
+                    const market = message.data.market;
+                    const lastTicker = this.latestTickers?.[market];
+                    if (!lastTicker) {
+                        throw new Error(`No ticker found for ${market}`);
+                    }
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
+                        type: "TICKER",
+                        payload: lastTicker
+                    });
+                } catch (e) {
+                    const fallbackTicker: TickerData = {
+                        event: "ticker",
+                        symbol: message.data.market,
+                        price: "0",
+                        quantity: "0",
+                        side: "buy",
+                        timestamp: Date.now()
+                    };
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
+                        type: "TICKER",
+                        payload: fallbackTicker
+                    });
+                }
+                break;
+
             default:
                 console.warn(`[Engine] Unknown message type: ${(message as any).type}`);
         }
