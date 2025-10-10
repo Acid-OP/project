@@ -304,6 +304,29 @@ export class Engine {
                 }
                 break;
             case GET_DEPTH:
+                try{
+                    const market = message.data.market;
+                    const orderbook = this.orderBooks.find(x => x.getMarketPair() === market);
+                    if (!orderbook) {
+                        throw new Error("No orderbook found");
+                    }
+                    const depth = orderbook.getDepth()
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
+                        type: "DEPTH",
+                        payload : depth
+                    });
+                } catch(e) {
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
+                        type: "DEPTH",
+                        payload: {
+                            aggregatedAsks : [],
+                            aggregatedBids : []
+                        }
+                    });
+                }
+                break;
+            default:
+                console.warn(`[Engine] Unknown message type: ${(message as any).type}`);
         }
     }
 }

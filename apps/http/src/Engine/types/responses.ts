@@ -42,4 +42,10 @@ export type ResponseToHTTP = {
     executedQty: number,
     remainingQty: number
   }
+} | {
+  type: "DEPTH",
+  payload: {
+    aggregatedBids: [string, string][];
+    aggregatedAsks: [string, string][];
+  }
 }
