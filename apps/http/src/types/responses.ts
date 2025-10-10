@@ -4,4 +4,5 @@ export type ResponseFromOrderbook = {
         market: string,
         bids: [string, string][],
         asks: [string, string][],
-    }}
+    }
+}

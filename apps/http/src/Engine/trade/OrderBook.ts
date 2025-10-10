@@ -135,11 +135,21 @@ export class OrderBook {
             if(this.bids && this.bids[index]){
             const price = this.bids[index].price;
             this.bids.splice(index, 1);
-            console.log(`[OrderBook] Cancelled bid order ${order.orderId} at price ${price}`);
             return price;
             }
         }
-        console.log(`[OrderBook] Bid order ${order.orderId} not found for cancellation`);
+        return null;
+    }
+
+    cancelAsk(order:Order) {
+        const index = this.asks.findIndex(g => g.orderId === order.orderId);
+        if(index !== -1){
+            if(this.asks && this.asks[index]){
+            const price = this.asks[index].price;
+            this.asks.splice(index, 1);
+            return price;
+            }
+        }
         return null;
     }
 

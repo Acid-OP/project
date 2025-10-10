@@ -1,12 +1,11 @@
-import { CREATE_ORDER } from "../../types/orders";
+import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH } from "../../types/orders";
 import { RedisManager } from "../RedisManager";
 import { ResponseFromHTTP } from "../types/responses";
-import { BASE_CURRENCY, Fill, Order, UserBalance, userIdd } from "../types/UserTypes";
+import { BASE_CURRENCY, Fill, Order, UserBalance, userId } from "../types/UserTypes";
 import { OrderBook } from "./OrderBook";
-export const CANCEL_ORDER = "CANCEL_ORDER";
 export class Engine {
     private orderBooks:OrderBook[] = [];
-    private balances: Map<userIdd , UserBalance> = new Map();
+    private balances: Map<userId , UserBalance> = new Map();
     constructor() {
         this.orderBooks = [
             new OrderBook("CR7_USD", [] , [] , 0 , 50000),
@@ -269,10 +268,42 @@ export class Engine {
                        if (price) {
                             this.UpdatedDepth(price.toString(), cancelMarket);
                         }
-                    }
-                } catch(e){
+                    } else {
+                        if(!userBalance[baseAsset]){
+                            throw new Error(`User balance for ${baseAsset} not found`);
+                        }
 
+                        const price = cancelOrderbook.cancelAsk(order);
+                        const leftQuantity = order.quantity - order.filled;
+
+                        userBalance[baseAsset].available += leftQuantity;
+                        userBalance[baseAsset].locked -= leftQuantity;
+
+                        if (price) {
+                            this.UpdatedDepth(price.toString(), cancelMarket);
+                        }
+                    }
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
+                        type: "ORDER_CANCELLED",
+                        payload: {
+                            orderId,
+                            executedQty: 0,
+                            remainingQty: 0
+                        }
+                    });
+                }  catch (e) {
+                    console.error("[Engine] Error during CANCEL_ORDER:", e);
+                    RedisManager.getInstance().ResponseToHTTP(clientId, {
+                        type: "ORDER_CANCELLED",
+                        payload: {
+                            orderId: message.data.orderId,
+                            executedQty: 0,
+                            remainingQty: 0,
+                        }
+                    });
                 }
+                break;
+            case GET_DEPTH:
         }
     }
 }

@@ -1,5 +1,5 @@
 export const BASE_CURRENCY = "USD";
-export type userIdd = string;
+export type userId = string;
 
 export interface UserBalance {
     [key: string]: {

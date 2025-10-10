@@ -27,7 +27,6 @@ export class Manager {
             const dataToQueue = { clientId: id, message };
 
             this.client.subscribe(id, (msg) => {
-                console.log(`✅ Got response for ${id}:`, msg);
                 this.client.unsubscribe(id);
                 resolve(JSON.parse(msg));
             });

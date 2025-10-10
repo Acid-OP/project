@@ -1,7 +1,7 @@
 export type SIDE = "buy" | "sell";
 export type CREATE_ORDER = "CREATE_ORDER"
 export type CANCEL_ORDER = "CANCEL_ORDER"
-
+export type GET_DEPTH = "GET_DEPTH"
 export type ResponseFromHTTP = {
     type: CREATE_ORDER;
     data: {
@@ -11,13 +11,18 @@ export type ResponseFromHTTP = {
         side: SIDE;
         userId: string;
     };
-} | {
+  } | {
     type: CANCEL_ORDER,
     data: {
         orderId: string,
         market: string,
     }
-} 
+  } | {
+    type: GET_DEPTH,
+    data: {
+      market : string
+    }
+  }
 
 export type ResponseToHTTP = {
   type: "ORDER_PLACED",
