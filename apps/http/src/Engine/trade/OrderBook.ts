@@ -90,6 +90,59 @@ export class OrderBook {
         return {executedQty , fills};
     }
 
+    getDepth() {
+        const aggregatedBids: [string , string][] = [];
+        const aggregatedAsks: [string , string][] = [];
+
+        const bidLevels: Record<string, number> = {};
+        const askLevels: Record<string, number> = {};
+
+        for(let i=0 ; i < this.bids.length; i++ ) {
+            const order = this.bids[i];
+            if(order && typeof order.price === "number") {
+                const pricekey = order.price.toString();
+                const availableQty = order.quantity - (order.filled || 0);
+                bidLevels[pricekey] = (bidLevels[pricekey] ?? 0) + availableQty; 
+            }
+        }
+
+        for(let i=0 ; i< this.asks.length ; i++) {
+            const order = this.asks[i];
+            if(order && typeof order.price === "number") {
+                const pricekey = order.price.toString();
+                const availableQty = order.quantity - (order.filled || 0);
+                askLevels[pricekey] = (askLevels[pricekey] ?? 0) + availableQty;
+            }
+        }
+
+        for (const price in bidLevels){
+            if(bidLevels[price]){
+                aggregatedBids.push([price,bidLevels[price].toString()]);
+            }
+        }
+
+        for (const price in askLevels){
+            if(askLevels[price]){
+                aggregatedAsks.push([price,askLevels[price].toString()]);
+            }
+        }
+        return {aggregatedBids , aggregatedAsks};
+
+    }
+    cancelBid (order:Order) {
+        const index = this.bids.findIndex(g => g.orderId === order.orderId);
+        if(index !== -1){
+            if(this.bids && this.bids[index]){
+            const price = this.bids[index].price;
+            this.bids.splice(index, 1);
+            console.log(`[OrderBook] Cancelled bid order ${order.orderId} at price ${price}`);
+            return price;
+            }
+        }
+        console.log(`[OrderBook] Bid order ${order.orderId} not found for cancellation`);
+        return null;
+    }
+
     addOrder(order:Order) {
         if(order.side === "buy") {
             const {executedQty , fills} = this.matchBid(order);

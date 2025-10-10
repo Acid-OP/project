@@ -15,6 +15,11 @@ export class RedisManager {
         }
         return this.instance;
     }
+
+    public Publish(channel:string , message:any){
+        this.client.publish(channel , JSON.stringify(message));
+    }
+    
     public ResponseToHTTP(clientId:string ,message:ResponseToHTTP){
         this.client.publish(clientId, JSON.stringify(message))
     }

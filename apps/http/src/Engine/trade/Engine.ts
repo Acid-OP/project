@@ -142,6 +142,30 @@ export class Engine {
         }}
 
     }
+    private UpdatedDepth(price:string , market:string) {
+        const orderbook = this.orderBooks.find(x => x.getMarketPair() === market);
+        if(!orderbook){
+            return
+        }
+        const depth = orderbook.getDepth();
+        if(!depth) {
+            return;
+        }
+        const aggregatedBids = depth?.aggregatedBids ?? [];
+        const aggregatedAsks = depth?.aggregatedAsks ?? [];
+
+        const updatedBids = aggregatedBids.filter(x => x[0] === price);
+        const updatedAsks = aggregatedAsks.filter(x => x[0] === price);
+
+        RedisManager.getInstance().Publish(`depth@${market}`, {
+            stream: `depth@${market}`,
+            data: {
+                a:updatedAsks.length ? updatedAsks : [[price, "0"]],
+                b:updatedBids.length ? updatedBids : [[price, "0"]],
+                e: "depth"
+            }
+        });
+    }
     async process({message , clientId}: {message:ResponseFromHTTP , clientId:string}) {
         switch(message.type) {
             case CREATE_ORDER:
@@ -207,7 +231,48 @@ export class Engine {
                 }
                 break;
             case CANCEL_ORDER:
+                try{
+                    const orderId = message.data.orderId;
+                    const cancelMarket = message.data.market;
+                    const baseAsset = cancelMarket.split("_")[0];
+                    const quoteAsset = cancelMarket.split("_")[1];
+                    const cancelOrderbook = this.orderBooks.find(x => x.getMarketPair() === cancelMarket);
 
+                    if (!cancelOrderbook) {
+                        throw new Error("No orderbook found");
+                    }
+                    
+                    if (!baseAsset || !quoteAsset) {
+                        throw new Error("Invalid market format");
+                    }
+                    const order = cancelOrderbook.asks.find(x => x.orderId === orderId) ||
+                                  cancelOrderbook.bids.find(x => x.orderId === orderId);                 
+                    if (!order) {
+                        throw new Error("No order found");
+                    }
+
+                    const userBalance = this.balances.get(order.userId);
+                    if (!userBalance) {
+                        throw new Error("User balance not found");
+                    }
+
+                    if(order.side === "buy") {
+                        if (!userBalance[quoteAsset]) {
+                            throw new Error(`User balance for ${quoteAsset} not found`);
+                        }
+                        const price = cancelOrderbook.cancelBid(order);
+                        const leftQuantity = (order.quantity - order.filled) * order.price;
+                        
+                        userBalance[quoteAsset].available += leftQuantity;
+                        userBalance[quoteAsset].locked -= leftQuantity;
+
+                       if (price) {
+                            this.UpdatedDepth(price.toString(), cancelMarket);
+                        }
+                    }
+                } catch(e){
+
+                }
         }
     }
 }
