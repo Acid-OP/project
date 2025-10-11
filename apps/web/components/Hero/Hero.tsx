@@ -17,7 +17,7 @@ export default function Hero() {
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="relative rounded-2xl overflow-hidden">
         <SlideCard {...slides[currentSlide]} />
         <CarouselDots slidesLength={slides.length} currentSlide={currentSlide} />

@@ -1,30 +1,26 @@
 "use client"
 import { useParams } from "next/navigation";
-import { Depth } from "../../../components/depth/Depth.";
 import { MarketBar } from "../../../components/MarketBar";
-import { SwapUI } from "../../../components/SwapUI";
-import { TradeView } from "../../../components/TradeView";
 
 export default function Home() {
     const { market } = useParams();
-    return <div className="flex flex-row h-screen max-h-screen overflow-hidden">
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    return <div className="flex flex-row h-screen max-h-screen overflow-hidden bg-[#0f0f14] gap-2 p-4 pt-0">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-2">
             <div className="shrink-0">
                 <MarketBar market={market as string} />
             </div>
-            <div className="flex flex-row flex-1 min-h-0 border-y border-slate-800 overflow-hidden">
-                <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                    <TradeView market={market as string} />
+            <div className="flex flex-row flex-1 min-h-0 overflow-hidden gap-2">
+                <div className="flex-1 bg-[#0d0d0d] rounded-lg">
+                    {/* TradeView will go here */}
                 </div>
-                <div className="flex flex-col w-[250px] min-h-0 overflow-hidden">
-                    <Depth market={market as string} /> 
+                <div className="w-[250px] bg-[#0d0d0d] rounded-lg">
+                    {/* Depth will go here */}
                 </div>
             </div>
         </div>
-        <div className="w-[10px] flex-col border-slate-800 border-l shrink-0"></div>
         <div className="shrink-0 overflow-hidden">
-            <div className="flex flex-col w-[250px] h-screen max-h-screen overflow-hidden">
-                <SwapUI market={market as string} />
+            <div className="flex flex-col w-[250px] h-full bg-[#0d0d0d] rounded-lg">
+                {/* SwapUI will go here */}
             </div>
         </div>
     </div>

@@ -29,10 +29,10 @@ html, body {
   }
 }
 
-body {
+/* body {
   color: rgb(var(--foreground-rgb));
   background: #0e0f14;
-}
+} */
 
 @layer utilities {
   .text-balance {

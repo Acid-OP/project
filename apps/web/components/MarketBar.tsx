@@ -1,82 +1,68 @@
-"use client";
-import { useEffect, useState } from "react";
-import { getTicker } from "../utils/httpClient";
-import type { Ticker } from "../utils/type";
-import { SignalingManager } from "../utils/SignallingManager";
+import React from 'react';
 
-export const MarketBar = ({market}: {market: string}) => {
-    const [ticker, setTicker] = useState<Ticker | null>(null);
+export function MarketBar({ market }: { market: string }) {
+  const [base, quote] = market.split('_');
 
-    useEffect(() => {
-        getTicker(market).then(setTicker);
-        SignalingManager.getInstance().registerCallback("ticker", (data: Partial<Ticker>)  =>  setTicker(prevTicker => ({
-            firstPrice: data?.firstPrice ?? prevTicker?.firstPrice ?? '',
-            high: data?.high ?? prevTicker?.high ?? '',
-            lastPrice: data?.lastPrice ?? prevTicker?.lastPrice ?? '',
-            low: data?.low ?? prevTicker?.low ?? '',
-            priceChange: data?.priceChange ?? prevTicker?.priceChange ?? '',
-            priceChangePercent: data?.priceChangePercent ?? prevTicker?.priceChangePercent ?? '',
-            quoteVolume: data?.quoteVolume ?? prevTicker?.quoteVolume ?? '',
-            symbol: data?.symbol ?? prevTicker?.symbol ?? '',
-            trades: data?.trades ?? prevTicker?.trades ?? '',
-            volume: data?.volume ?? prevTicker?.volume ?? '',
-        })), market);
-        SignalingManager.getInstance().sendMessage({"method":"SUBSCRIBE","params":[`ticker.${market}`]}	);
+  const marketData = {
+    lastPrice: '185.46',
+    change24h: '-35.83',
+    changePercent: '-16.17%',
+    high24h: '239.89',
+    low24h: '161.00',
+    volume24h: '85,999,534.36'
+  };
 
-        return () => {
-            SignalingManager.getInstance().deRegisterCallback("ticker", market);
-            SignalingManager.getInstance().sendMessage({"method":"UNSUBSCRIBE","params":[`ticker.${market}`]}	);
-        }
-    }, [market])
-    // 
+  const isNegative = marketData.change24h.startsWith('-');
 
-    return <div>
-        <div className="flex items-center flex-row relative w-full overflow-hidden border-b border-slate-800">
-            <div className="flex items-center justify-between flex-row no-scrollbar overflow-auto pr-4">
-                    <Ticker market={market} />
-                    <div className="flex items-center flex-row space-x-8 pl-4">
-                        <div className="flex flex-col h-full justify-center">
-                            <p className={`font-medium tabular-nums text-greenText text-md text-green-500`}>${ticker?.lastPrice}</p>
-                            <p className="font-medium text-sm text-sm tabular-nums">${ticker?.lastPrice}</p>
-                        </div>
-                        <div className="flex flex-col">
-                            <p className={`font-medium text-xs text-slate-400 text-sm`}>24H Change</p>
-                            <p className={` text-sm font-medium tabular-nums leading-5 text-sm text-greenText ${Number(ticker?.priceChange) > 0 ? "text-green-500" : "text-red-500"}`}>{Number(ticker?.priceChange) > 0 ? "+" : ""} {ticker?.priceChange} {Number(ticker?.priceChangePercent)?.toFixed(2)}%</p></div><div className="flex flex-col">
-                                <p className="font-medium text-xs text-slate-400 text-sm">24H High</p>
-                                <p className="text-sm font-medium tabular-nums leading-5 text-sm ">{ticker?.high}</p>
-                                </div>
-                                <div className="flex flex-col">
-                                    <p className="font-medium text-xs text-slate-400 text-sm">24H Low</p>
-                                    <p className="text-sm font-medium tabular-nums leading-5 text-sm ">{ticker?.low}</p>
-                                </div>
-                            <button type="button" className="font-medium transition-opacity hover:opacity-80 hover:cursor-pointer text-base text-left" data-rac="">
-                                <div className="flex flex-col">
-                                    <p className="font-medium text-xs text-slate-400 text-sm">24H Volume</p>
-                                    <p className="mt-1 text-sm font-medium tabular-nums leading-5 text-sm ">{ticker?.volume}
-                                </p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="flex items-center gap-8 px-6 py-4 bg-[#14151b] border-b border-[#1a1a1a] rounded-lg">
+      <div className="flex items-center gap-3 bg-[#202127] px-3 py-2 rounded-xl min-w-[140px]">
+        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+          {base?.charAt(0)}
         </div>
-
-}
-
-function Ticker({market}: {market: string}) {
-    return <div className="flex h-[60px] shrink-0 space-x-4">
-        <div className="flex flex-row relative ml-2 -mr-4">
-            <img alt="SOL Logo" loading="lazy" decoding="async" data-nimg="1" className="z-10 rounded-full h-6 w-6 mt-4 outline-baseBackgroundL1"  src="/sol.webp" />
-            <img alt="USDC Logo" loading="lazy"decoding="async" data-nimg="1" className="h-6 w-6 -ml-2 mt-4 rounded-full" src="/usdc.webp" />
+        <div className="flex items-center gap-0.5">
+          <span className="text-white font-medium text-lg">{base}</span>
+          <span className="text-[#7d8492] font-medium text-lg">/</span>
+          <span className="text-[#7d8492] font-medium text-lg">{quote}</span>
         </div>
-    <button type="button" className="react-aria-Button" data-rac="">
-        <div className="flex items-center justify-between flex-row cursor-pointer rounded-lg p-3 hover:opacity-80">
-            <div className="flex items-center flex-row gap-2 undefined">
-                <div className="flex flex-row relative">
-                    <p className="font-medium text-sm undefined">{market.replace("_", " / ")}</p>
-                </div>
-            </div>
+      </div>
+
+      <div className="flex flex-col">
+        <div className={`text-xl font-medium ${isNegative ? 'text-red-500' : 'text-green-500'}`}>
+          {marketData.lastPrice}
         </div>
-    </button>
+        <div className="text-sm text-white">
+          ${marketData.lastPrice}
+        </div>
+      </div>
+
+      <div className="flex flex-col">
+        <div className="text-xs text-gray-400 mb-1">24H Change</div>
+        <div className={`text-sm font-medium ${isNegative ? 'text-red-500' : 'text-green-500'}`}>
+          {marketData.change24h} {marketData.changePercent}
+        </div>
+      </div>
+
+      <div className="flex flex-col">
+        <div className="text-xs text-gray-400 mb-1">24H High</div>
+        <div className="text-sm text-white font-medium">
+          {marketData.high24h}
+        </div>
+      </div>
+
+      <div className="flex flex-col">
+        <div className="text-xs text-gray-400 mb-1">24H Low</div>
+        <div className="text-sm text-white font-medium">
+          {marketData.low24h}
+        </div>
+      </div>
+
+      <div className="flex flex-col">
+        <div className="text-xs text-gray-400 mb-1">24H Volume ({quote})</div>
+        <div className="text-sm text-white font-medium">
+          {marketData.volume24h}
+        </div>
+      </div>
     </div>
+  );
 }
