@@ -1,7 +1,7 @@
 "use client"
 import { useParams } from "next/navigation";
 import { MarketBar } from "../../../components/MarketBar";
-import { SwapUI } from "../../../components/SwapUI";
+import { SwapUI } from "../../../components/SwapUI/SwapUI";
 
 export default function Home() {
     const { market } = useParams();
@@ -20,7 +20,7 @@ export default function Home() {
             </div>
         </div>
         <div className="shrink-0 overflow-hidden">
-            <div className="flex flex-col w-[350px] h-full bg-[#14151b] rounded-lg">
+            <div className="flex flex-col w-[340px] h-full bg-[#14151b] rounded-lg">
                 <SwapUI market={market as string}/>
             </div>
         </div>
