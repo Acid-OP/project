@@ -32,8 +32,8 @@ const TradeForm: React.FC<TradeFormProps> = ({ price, setPrice, quantity, setQua
             onChange={(e) => setPrice(e.target.value)}
             className="w-full bg-[#202127] text-white text-xl font-medium px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors">
-            <span className="text-white text-lg font-bold">$</span>
+          <button className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center transition-colors">
+            <span className="text-white text-sm font-medium">$</span>
           </button>
         </div>
       </div>
@@ -91,9 +91,9 @@ const TradeForm: React.FC<TradeFormProps> = ({ price, setPrice, quantity, setQua
             onChange={(e) => setOrderValue(e.target.value)}
             className="w-full bg-[#202127] text-white text-xl font-medium px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors">
-            <span className="text-white text-lg font-bold">$</span>
-          </button>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center transition-colors">
+            <span className="text-white text-sm font-medium">$</span>
+          </div>
         </div>
       </div>
 

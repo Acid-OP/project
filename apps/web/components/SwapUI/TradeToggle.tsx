@@ -8,7 +8,6 @@ type TradeToggleProps = {
 
 const TradeToggle: React.FC<TradeToggleProps> = ({onChange, initialSide = "buy", width = "w-80",}) => {
   const [side, setSide] = useState<"buy" | "sell">(initialSide);
-
   const handleClick = (newSide: "buy" | "sell") => {
     setSide(newSide);
     if (onChange) onChange(newSide);

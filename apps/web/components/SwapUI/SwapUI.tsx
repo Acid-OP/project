@@ -38,6 +38,7 @@ export function SwapUI({ market }: { market: string }) {
       {/* Market Reputation */}
       <div className="mt-4 pt-4 border-t border-[#2a2b35]">
         <span className="text-sm text-gray-400">Market Reputation</span>
+        
       </div>
     </div>
   );

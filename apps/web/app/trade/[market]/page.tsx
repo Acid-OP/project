@@ -2,10 +2,11 @@
 import { useParams } from "next/navigation";
 import { MarketBar } from "../../../components/MarketBar";
 import { SwapUI } from "../../../components/SwapUI/SwapUI";
+import Orderbook from "../../../components/depth/Depth.";
 
 export default function Home() {
     const { market } = useParams();
-    return  <div className="flex flex-row h-screen max-h-screen overflow-hidden bg-[#0f0f14] gap-2 p-4 pt-0">
+    return  <div className="flex flex-row min-h-screen bg-[#0f0f14] gap-2 p-4 pt-0">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-2">
             <div className="shrink-0">
                 <MarketBar market={market as string} />
@@ -15,7 +16,7 @@ export default function Home() {
                     {/* TradeView will go here */}
                 </div>
                 <div className="w-[300px] bg-[#14151b] rounded-lg">
-                    {/* Depth will go here */}
+                    <Orderbook/>
                 </div>
             </div>
         </div>
