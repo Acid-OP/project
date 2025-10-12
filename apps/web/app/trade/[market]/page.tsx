@@ -6,6 +6,9 @@ import Orderbook from "../../../components/depth/Depth.";
 
 export default function Home() {
     const { market } = useParams();
+    const [baseAsset, quoteAsset] = (market?.toString() || "BTC-USDT").split("_");
+    const base = baseAsset as string;
+    const quote = quoteAsset as string;
     return  <div className="flex flex-row min-h-screen bg-[#0f0f14] gap-2 p-4 pt-0">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-2">
             <div className="shrink-0">
@@ -16,7 +19,7 @@ export default function Home() {
                     {/* TradeView will go here */}
                 </div>
                 <div className="w-[300px] bg-[#14151b] rounded-lg">
-                    <Orderbook/>
+                    <Orderbook baseAsset={base} quoteAsset={quote} />
                 </div>
             </div>
         </div>
