@@ -1,170 +1,193 @@
-"use client";
-import { useState, useEffect } from "react";
+import React, { useState } from 'react';
 
-export function SwapUI({ market }: {market: string}) {
-    const [amount, setAmount] = useState('');
-    const [activeTab, setActiveTab] = useState('buy');
-    const [type, setType] = useState('limit');
-    const [price, setPrice] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [isClient, setIsClient] = useState(false);
+export function SwapUI({ market }: { market: string }) {
+  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [orderType, setOrderType] = useState<'limit' | 'market' | 'conditional'>('limit');
+  const [price, setPrice] = useState('185.65');
+  const [quantity, setQuantity] = useState('0');
+  const [orderValue, setOrderValue] = useState('0');
+  const [percentage, setPercentage] = useState(0);
 
-    useEffect(() => {
-        setIsClient(true);
-        // Set initial values after hydration
-        if (type === 'limit') {
-            setPrice('134.38');
-            setQuantity('123');
-        }
-    }, [type]);
+  const [base, quote] = market.split('_');
 
-    // Don't render until client-side to avoid any hydration issues
-    if (!isClient) {
-        return <div className="h-[400px] flex items-center justify-center">
-            <div className="animate-pulse text-slate-400">Loading...</div>
-        </div>;
-    }
+  const handlePercentageChange = (value: number) => {
+    setPercentage(value);
+    // Calculate quantity based on percentage
+  };
 
-    return <div>
-        <div className="flex flex-col">
-            <div className="flex flex-row h-[60px]">
-                <BuyButton activeTab={activeTab} setActiveTab={setActiveTab} />
-                <SellButton activeTab={activeTab} setActiveTab={setActiveTab} />
-            </div>
-            <div className="flex flex-col gap-1">
-                <div className="px-3">
-                    <div className="flex flex-row flex-0 gap-5 undefined">
-                        <LimitButton type={type} setType={setType} />
-                        <MarketButton type={type} setType={setType} />                       
-                    </div>
-                </div>
-                <div className="flex flex-col px-3">
-                    <div className="flex flex-col flex-1 gap-3 text-white">
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center justify-between flex-row">
-                                <p className="text-xs font-normal text-white">Available Balance</p>
-                                <p className="font-medium text-xs text-white">36.94 USDC</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <p className="text-xs font-normal text-white">
-                                Price
-                            </p>
-                            <div className="flex flex-col relative">
-                                <input 
-                                    step="0.01" 
-                                    placeholder="0" 
-                                    className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-white placeholder-white ring-0 transition focus:border-accentBlue focus:ring-0" 
-                                    type="text" 
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
-                                />
-                                <div className="flex flex-row absolute right-1 top-1 p-2">
-                                    <div className="relative">
-                                        <img src="/usdc.webp" className="w-6 h-6" alt="USDC" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <p className="text-xs font-normal text-white">
-                            Quantity
-                        </p>
-                        <div className="flex flex-col relative">
-                            <input 
-                                step="0.01" 
-                                placeholder="0" 
-                                className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-white placeholder-white ring-0 transition focus:border-accentBlue focus:ring-0" 
-                                type="text" 
-                                value={quantity}
-                                onChange={(e) => setQuantity(e.target.value)}
-                            />
-                            <div className="flex flex-row absolute right-1 top-1 p-2">
-                                <div className="relative">
-                                    <img src="/sol.webp" className="w-6 h-6" alt="SOL" />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex justify-end flex-row">
-                            <p className="font-medium pr-2 text-xs text-white">
-                                ≈ {price && quantity ? (parseFloat(price) * parseFloat(quantity)).toFixed(2) : '0.00'} USDC
-                            </p>
-                        </div>
-                        <div className="flex justify-center flex-row mt-2 gap-3">
-                            <PercentageButton percentage="25%" onClick={() => {
-                                setQuantity((36.94 * 0.25).toFixed(2));
-                            }} />
-                            <PercentageButton percentage="50%" onClick={() => {
-                                setQuantity((36.94 * 0.50).toFixed(2));
-                            }} />
-                            <PercentageButton percentage="75%" onClick={() => {
-                                setQuantity((36.94 * 0.75).toFixed(2));
-                            }} />
-                            <PercentageButton percentage="Max" onClick={() => {
-                                setQuantity('36.94');
-                            }} />
-                        </div>
-                    </div>
-                   <button type="button" className={`font-semibold focus:ring-2 focus:ring-blue-200 focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 transition-all duration-200 transform hover:scale-105 active:scale-95 ${activeTab === 'buy'? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}data-rac="">{activeTab === 'buy' ? 'Buy' : 'Sell'}
-                   </button>
-                    <div className="flex justify-between flex-row mt-1">
-                        <div className="flex flex-row gap-2">
-                            <div className="flex items-center">
-                                <input className="form-checkbox rounded border border-solid border-baseBorderMed bg-base-950 font-light text-transparent shadow-none shadow-transparent outline-none ring-0 ring-transparent checked:border-baseBorderMed checked:bg-base-900 checked:hover:border-baseBorderMed focus:bg-base-900 focus:ring-0 focus:ring-offset-0 focus:checked:border-baseBorderMed cursor-pointer h-5 w-5" id="postOnly" type="checkbox" data-rac="" />
-                                <label className="ml-2 text-white text-xs">Post Only</label>
-                            </div>
-                            <div className="flex items-center">
-                                <input className="form-checkbox rounded border border-solid border-baseBorderMed bg-base-950 font-light text-transparent shadow-none shadow-transparent outline-none ring-0 ring-transparent checked:border-baseBorderMed checked:bg-base-900 checked:hover:border-baseBorderMed focus:bg-base-900 focus:ring-0 focus:ring-offset-0 focus:checked:border-baseBorderMed cursor-pointer h-5 w-5" id="ioc" type="checkbox" data-rac="" />
-                                <label className="ml-2 text-white text-xs">IOC</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-function PercentageButton({ percentage, onClick }: { percentage: string, onClick: () => void }) {
-    return (
+  return (
+    <div className="flex flex-col h-full bg-[#14151b] p-4">
+      {/* Buy/Sell Tabs */}
+      <div className="flex gap-0 mb-4 bg-[#1a1b23] rounded-lg p-0.5 relative">
         <div 
-            className="flex items-center text-white justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3"
-            onClick={onClick}
+          className={`absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-lg transition-all duration-300 ease-in-out ${
+            side === 'buy' ? 'left-0.5 bg-green-600' : 'left-[calc(50%+2px)] bg-red-600'
+          }`}
+        />
+        <button
+          onClick={() => setSide('buy')}
+          className="flex-1 py-2.5 rounded-lg font-medium transition-colors relative z-10 cursor-pointer text-white"
         >
-            {percentage}
+          Buy
+        </button>
+        <button
+          onClick={() => setSide('sell')}
+          className="flex-1 py-2.5 rounded-lg font-medium transition-colors relative z-10 cursor-pointer text-white"
+        >
+          Sell
+        </button>
+      </div>
+
+      {/* Order Type Tabs */}
+      <div className="flex gap-4 mb-4 border-b border-[#2a2b35]">
+        <button
+          onClick={() => setOrderType('limit')}
+          className={`pb-2 px-1 font-medium text-sm transition-colors ${
+            orderType === 'limit'
+              ? 'text-white border-b-2 border-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Limit
+        </button>
+        <button
+          onClick={() => setOrderType('market')}
+          className={`pb-2 px-1 font-medium text-sm transition-colors ${
+            orderType === 'market'
+              ? 'text-white border-b-2 border-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Market
+        </button>
+        <button
+          onClick={() => setOrderType('conditional')}
+          className={`pb-2 px-1 font-medium text-sm transition-colors flex items-center gap-1 ${
+            orderType === 'conditional'
+              ? 'text-white border-b-2 border-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Conditional
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Balance */}
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-sm text-gray-400">Balance</span>
+        <span className="text-sm text-white">-</span>
+      </div>
+
+      {/* Price Input */}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-400">Price</span>
+          <div className="flex gap-2">
+            <button className="text-xs text-blue-500 hover:text-blue-400">Mid</button>
+            <button className="text-xs text-blue-500 hover:text-blue-400">BBO</button>
+          </div>
         </div>
-    );
-}
-
-function LimitButton({ type, setType }: { type: string, setType: (type: string) => void }) {
-    return <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('limit')}>
-        <div className={`text-sm font-medium text-white py-1 border-b-2 ${type === 'limit' ? "border-accentBlue text-baseTextHighEmphasis" : "border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
-            Limit
+        <div className="relative">
+          <input
+            type="text"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="w-full bg-[#1a1b23] text-white text-xl font-medium px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors">
+            <span className="text-white text-lg font-bold">$</span>
+          </button>
         </div>
-    </div>
-}
+      </div>
 
-function MarketButton({ type, setType }: { type: string, setType: (type: string) => void }) {
-    return <div className="flex flex-col cursor-pointer justify-center py-2" onClick={() => setType('market')}>
-        <div className={`text-sm font-medium text-white py-1 border-b-2 ${type === 'market' ? "border-accentBlue text-baseTextHighEmphasis" : "border-b-2 border-transparent text-baseTextMedEmphasis hover:border-baseTextHighEmphasis hover:text-baseTextHighEmphasis"}`}>
-            Market
+      {/* Quantity Input */}
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-400">Quantity</span>
+          <button className="p-1 hover:bg-[#1a1b23] rounded">
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
-    </div>
-}
+        <div className="relative">
+          <input
+            type="text"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="w-full bg-[#1a1b23] text-white text-xl font-medium px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+      </div>
 
-function BuyButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
-    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center text-white border-b-2 p-4 transition-all duration-200 ${activeTab === 'buy' ? 'border-b-green-500 bg-green-500/10' : 'border-b-slate-600 hover:border-b-slate-400'}`} onClick={() => setActiveTab('buy')}>
-        <p className="text-center text-sm text-white font-semibold">
-            Buy
-        </p>
-    </div>
-}
+      {/* Percentage Slider */}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={percentage}
+            onChange={(e) => handlePercentageChange(Number(e.target.value))}
+            className="flex-1 h-1 bg-[#1a1b23] rounded-lg appearance-none cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percentage}%, #1a1b23 ${percentage}%, #1a1b23 100%)`
+            }}
+          />
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-gray-500">0</span>
+          <span className="text-xs text-white font-medium">{percentage}%</span>
+        </div>
+      </div>
 
-function SellButton({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
-    return <div className={`flex flex-col mb-[-2px] flex-1 cursor-pointer justify-center border-b-2 p-4 transition-all duration-200 ${activeTab === 'sell' ? 'border-b-red-500 bg-red-500/10' : 'border-b-slate-600 hover:border-b-slate-400'}`} onClick={() => setActiveTab('sell')}>
-        <p className="text-center text-sm text-white font-semibold">
-            Sell
-        </p>
+      {/* Order Value */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-400">Order Value</span>
+        </div>
+        <div className="relative">
+          <input
+            type="text"
+            value={orderValue}
+            onChange={(e) => setOrderValue(e.target.value)}
+            className="w-full bg-[#1a1b23] text-white text-xl font-medium px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors">
+            <span className="text-white text-lg font-bold">$</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="space-y-3 mt-auto">
+        <button className="w-full py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors">
+          Sign up to trade
+        </button>
+        <button className="w-full py-3 bg-transparent text-white font-medium rounded-lg border border-gray-600 hover:bg-[#1a1b23] transition-colors">
+          Sign in to trade
+        </button>
+      </div>
+
+      {/* Checkboxes */}
+      <div className="flex gap-4 mt-4">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" className="w-4 h-4 bg-[#1a1b23] border border-gray-600 rounded" />
+          <span className="text-sm text-gray-400">Post Only</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" className="w-4 h-4 bg-[#1a1b23] border border-gray-600 rounded" />
+          <span className="text-sm text-gray-400">IOC</span>
+        </label>
+      </div>
+
+      {/* Market Reputation */}
+      <div className="mt-4 pt-4 border-t border-[#2a2b35]">
+        <span className="text-sm text-gray-400">Market Reputation</span>
+      </div>
     </div>
+  );
 }
