@@ -12,15 +12,15 @@ export const DUMMY_DATA = {
     { price: "185.44", size: "37.22", total: "37.22" }
   ],
   bids: [
-    { price: "185.46", size: "37.22", total: "37.22" },
-    { price: "185.43", size: "0.05", total: "0.05" },
-    { price: "185.41", size: "0.02", total: "0.07" },
-    { price: "185.40", size: "0.02", total: "0.09" },
-    { price: "185.39", size: "0.05", total: "0.14" },
-    { price: "185.37", size: "0.02", total: "0.16" },
-    { price: "185.34", size: "0.10", total: "0.26" },
-    { price: "185.33", size: "0.92", total: "1.18" },
-    { price: "185.32", size: "1.35", total: "2.53" },
-    { price: "185.30", size: "2.15", total: "4.68" }
+    { price: "185.46", size: "5.22", total: "5.22" },
+    { price: "185.43", size: "12.50", total: "17.72" },
+    { price: "185.41", size: "8.30", total: "26.02" },
+    { price: "185.40", size: "15.80", total: "41.82" },
+    { price: "185.39", size: "22.40", total: "64.22" },
+    { price: "185.37", size: "18.60", total: "82.82" },
+    { price: "185.34", size: "25.10", total: "107.92" },
+    { price: "185.33", size: "12.92", total: "120.84" },
+    { price: "185.32", size: "8.35", total: "129.19" },
+    { price: "185.30", size: "15.15", total: "144.34" }
   ]
 };
