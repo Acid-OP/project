@@ -1,4 +1,5 @@
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocket } from "ws";
+import { IncomingMessage, SUBSCRIBE } from "./types/Users";
 
 export class Users{
     private id:string;
@@ -10,9 +11,16 @@ export class Users{
         this.Listners();
     }
     private Listners(){
-        this.ws.on("message" , (ws) => {
+        this.ws.on("message" , (message:string) => {
+            const response : IncomingMessage = JSON.parse(message);
+            if(response.method === SUBSCRIBE){
 
-        })
+            }
+
+            if(response.method === SUBSCRIBE) {
+
+            }    
+        });
     }
 
 }
