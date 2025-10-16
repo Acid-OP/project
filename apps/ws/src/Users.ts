@@ -1,5 +1,6 @@
 import { WebSocket } from "ws";
-import { IncomingMessage, SUBSCRIBE } from "./types/Users";
+import { IncomingMessage, OutgoingMessage, SUBSCRIBE, UNSUBSCRIBE } from "./types/Users";
+import { Subscription } from "./subscription";
 
 export class Users{
     private id:string;
@@ -10,14 +11,16 @@ export class Users{
         this.ws = ws;
         this.Listners();
     }
+    emit(message: OutgoingMessage) {
+        this.ws.send(JSON.stringify(message));
+    }
     private Listners(){
         this.ws.on("message" , (message:string) => {
             const response : IncomingMessage = JSON.parse(message);
             if(response.method === SUBSCRIBE){
-
+                response.params.forEach(s => Subscription.getInstance().subscribe(this.id, s));
             }
-
-            if(response.method === SUBSCRIBE) {
+            if(response.method === UNSUBSCRIBE) {
 
             }    
         });

@@ -1,16 +1,36 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Users } from "./Users";
+import { Subscription } from "./subscription";
 export class UserManager {
+    private static instance: UserManager;
     private users:Map<string , Users> = new Map();
     constructor() {
 
     }
-    static connect() {
-      return new UserManager();
+    
+    public static getInstance() {
+        if (!this.instance)  {
+            this.instance = new UserManager();
+        }
+        return this.instance;
     }
+
     public addUsers(ws:WebSocket) {
         const id = this.getRandomId();
         const user = new Users(id,ws);
+        this.users.set(id, user);
+        this.registerOnClose(ws, id);
+        return user;
+    }
+
+    private registerOnClose(ws: WebSocket, id: string) {
+        ws.on("close", () => {
+            this.users.delete(id);
+            Subscription.getInstance().userLeft(id);
+        });
+    }
+    public getUser(id: string) {
+        return this.users.get(id);
     }
 
     private getRandomId() {
