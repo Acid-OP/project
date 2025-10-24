@@ -47,7 +47,6 @@ export class SignalingManager {
     trade: []
   };
   
-  private tickerCache: Record<string, Ticker> = {};
   private depthCache: Record<string, DepthUpdate> = {};
   private tradeCache: Record<string, Trade[]> = {};
   private subscribedSymbols: Set<string> = new Set();
@@ -89,7 +88,7 @@ export class SignalingManager {
 
       switch (type) {
         case 'ticker':
-        //   this.handleTickerUpdate(symbol, data);
+          this.handleTickerUpdate(symbol, data);
           break;
         case 'depth':
           this.handleDepthUpdate(symbol, data);
@@ -163,38 +162,20 @@ export class SignalingManager {
   }
 
   private handleTickerUpdate(symbol: string, data: any) {
-    const prevTicker = this.tickerCache[symbol];
-    const currentPrice = parseFloat(data.price);
-    const prevPrice = prevTicker ? parseFloat(prevTicker.lastPrice) : currentPrice;
-    
-    const priceChange = currentPrice - prevPrice;
-    const priceChangePercent = prevPrice !== 0 
-      ? ((priceChange / prevPrice) * 100).toFixed(2)
-      : '0.00';
-
-    const high24h = prevTicker 
-      ? Math.max(parseFloat(prevTicker.high24h), currentPrice).toFixed(2)
-      : data.price;
-    
-    const low24h = prevTicker 
-      ? Math.min(parseFloat(prevTicker.low24h), currentPrice).toFixed(2)
-      : data.price;
-
+    // Just pass through what backend sends - no calculations
     const ticker: Ticker = {
       symbol: symbol,
       lastPrice: data.price,
-      priceChange: priceChange.toFixed(2),
-      priceChangePercent: priceChangePercent,
-      high24h: high24h,
-      low24h: low24h,
-      volume24h: data.quantity,
-      quoteVolume24h: (currentPrice * parseFloat(data.quantity)).toFixed(2),
+      priceChange: data.priceChange || '0',
+      priceChangePercent: data.priceChangePercent || '0',
+      high24h: data.high24h || '0',
+      low24h: data.low24h || '0',
+      volume24h: data.volume24h || '0',
+      quoteVolume24h: data.quoteVolume24h || '0',
       lastQuantity: data.quantity,
       lastSide: data.side,
       timestamp: data.timestamp
     };
-
-    this.tickerCache[symbol] = ticker;
 
     this.callbacks.ticker.forEach(({ callback }) => {
       callback(ticker);
@@ -231,49 +212,8 @@ export class SignalingManager {
     }
     this.tradeCache[symbol] = [trade, ...this.tradeCache[symbol]].slice(0, 100);
 
-    this.updateTickerFromTrade(symbol, trade);
-
     this.callbacks.trade.forEach(({ callback }) => {
       callback(trade);
-    });
-  }
-
-  private updateTickerFromTrade(symbol: string, trade: Trade) {
-    const prevTicker = this.tickerCache[symbol];
-    const currentPrice = parseFloat(trade.price);
-    const prevPrice = prevTicker ? parseFloat(prevTicker.lastPrice) : currentPrice;
-    
-    const priceChange = currentPrice - prevPrice;
-    const priceChangePercent = prevPrice !== 0 
-      ? ((priceChange / prevPrice) * 100).toFixed(2)
-      : '0.00';
-
-    const high24h = prevTicker 
-      ? Math.max(parseFloat(prevTicker.high24h), currentPrice).toFixed(2)
-      : trade.price;
-    
-    const low24h = prevTicker 
-      ? Math.min(parseFloat(prevTicker.low24h), currentPrice).toFixed(2)
-      : trade.price;
-
-    const ticker: Ticker = {
-      symbol: symbol,
-      lastPrice: trade.price,
-      priceChange: priceChange.toFixed(2),
-      priceChangePercent: priceChangePercent,
-      high24h: high24h,
-      low24h: low24h,
-      volume24h: trade.quantity,
-      quoteVolume24h: (currentPrice * parseFloat(trade.quantity)).toFixed(2),
-      lastQuantity: trade.quantity,
-      lastSide: trade.side,
-      timestamp: trade.timestamp
-    };
-
-    this.tickerCache[symbol] = ticker;
-
-    this.callbacks.ticker.forEach(({ callback }) => {
-      callback(ticker);
     });
   }
 
@@ -286,10 +226,6 @@ export class SignalingManager {
     if (index !== -1) {
       this.callbacks[type].splice(index, 1);
     }
-  }
-
-  public getCachedTicker(symbol: string): Ticker | null {
-    return this.tickerCache[symbol] || null;
   }
 
   public getCachedDepth(symbol: string): DepthUpdate | null {

@@ -91,4 +91,3 @@ export type DepthData = {
     bids: [string, string][];
     timestamp: number;
 };
-

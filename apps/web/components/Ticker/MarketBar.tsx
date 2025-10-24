@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { SignalingManager, Ticker } from '../../app/utils/Manager';
+import { SignalingManager, Ticker } from '../../utils/Manager';
 
 export function MarketBar({ market }: { market: string }) {
   const [base, quote] = market.split('_');
@@ -12,11 +12,6 @@ export function MarketBar({ market }: { market: string }) {
     const callbackId = `marketbar-${market}`;
 
     manager.subscribe(market);
-
-    const cachedTicker = manager.getCachedTicker(market);
-    if (cachedTicker) {
-      setMarketData(cachedTicker);
-    }
 
     manager.registerCallback('ticker', (ticker: Ticker) => {
       if (ticker.symbol === market) {
