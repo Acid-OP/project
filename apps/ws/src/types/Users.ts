@@ -13,8 +13,6 @@ export type UnsubscribeMessage = {
 
 export type IncomingMessage = SubscribeMessage | UnsubscribeMessage;
 
-
-
 export type TickerUpdateMessage = {
     type: "ticker",
     data: {

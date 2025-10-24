@@ -21,8 +21,10 @@ export class Users{
                 response.params.forEach(s => Subscription.getInstance().subscribe(this.id, s));
             }
             if(response.method === UNSUBSCRIBE) {
-
-            }    
+                response.params.forEach(s => 
+                    Subscription.getInstance().unsubscribe(this.id, s)
+                );
+            }
         });
     }
 

@@ -4,9 +4,7 @@ import { Subscription } from "./subscription";
 export class UserManager {
     private static instance: UserManager;
     private users:Map<string , Users> = new Map();
-    constructor() {
-
-    }
+    constructor() {}
     
     public static getInstance() {
         if (!this.instance)  {
