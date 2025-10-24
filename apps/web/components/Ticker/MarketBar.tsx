@@ -1,18 +1,44 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { SignalingManager, Ticker } from '../../app/utils/Manager';
 
 export function MarketBar({ market }: { market: string }) {
   const [base, quote] = market.split('_');
+  const [marketData, setMarketData] = useState<Ticker | null>(null);
 
-  const marketData = {
-    lastPrice: '185.46',
-    change24h: '-35.83',
-    changePercent: '-16.17%',
-    high24h: '239.89',
-    low24h: '161.00',
-    volume24h: '85,999,534.36'
-  };
+  useEffect(() => {
+    const manager = SignalingManager.getInstance();
+    const callbackId = `marketbar-${market}`;
 
-  const isNegative = marketData.change24h.startsWith('-');
+    manager.subscribe(market);
+
+    const cachedTicker = manager.getCachedTicker(market);
+    if (cachedTicker) {
+      setMarketData(cachedTicker);
+    }
+
+    manager.registerCallback('ticker', (ticker: Ticker) => {
+      if (ticker.symbol === market) {
+        setMarketData(ticker);
+      }
+    }, callbackId);
+
+    return () => {
+      manager.deRegisterCallback('ticker', callbackId);
+      manager.unsubscribe(market);
+    };
+  }, [market]);
+
+  if (!marketData) {
+    return (
+      <div className="flex items-center gap-8 px-6 py-4 bg-[#14151b] border-b border-[#1a1a1a] rounded-lg">
+        <div className="text-gray-400">Loading market data...</div>
+      </div>
+    );
+  }
+
+  const isNegative = marketData.priceChangePercent.startsWith('-');
 
   return (
     <div className="flex items-center gap-8 px-6 py-4 bg-[#14151b] border-b border-[#1a1a1a] rounded-lg">
@@ -39,7 +65,7 @@ export function MarketBar({ market }: { market: string }) {
       <div className="flex flex-col">
         <div className="text-xs text-gray-400 mb-1">24H Change</div>
         <div className={`text-sm font-medium ${isNegative ? 'text-red-500' : 'text-green-500'}`}>
-          {marketData.change24h} {marketData.changePercent}
+          {marketData.priceChange} {marketData.priceChangePercent}%
         </div>
       </div>
 
