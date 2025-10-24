@@ -16,11 +16,11 @@ export interface Ticker {
 
 export interface DepthUpdate {
   symbol: string;
-  bids: [string, string][];
-  asks: [string, string][];
+  bids: [string, string, string][]; 
+  asks: [string, string, string][]; 
+  buyPercentage?: number;
   timestamp: number;
 }
-
 export interface Trade {
   tradeId: number;
   symbol: string;
