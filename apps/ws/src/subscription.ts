@@ -7,28 +7,31 @@ export class Subscription {
     private topicSubscribers: Map<string, string[]> = new Map();
     private redisClient: RedisClientType;
     private isReady: boolean = false;
+    private readyPromise: Promise<void>; // Add this
 
     constructor() {
         this.redisClient = createClient();
-        this.initRedis();
+        this.readyPromise = this.initRedis(); // Store the promise
     }
 
-    private async initRedis() {
+    private async initRedis(): Promise<void> {
         try {
             await this.redisClient.connect();
             this.isReady = true;
-            console.log('Redis connected successfully');
+            console.log('✅ Redis connected successfully');
         } catch (error) {
-            console.error('Redis connection failed:', error);
+            console.error('❌ Redis connection failed:', error);
+            throw error; // Re-throw to handle in caller
         }
 
         this.redisClient.on('error', (err) => {
-            console.error('Redis Client Error:', err);
+            console.error('❌ Redis Client Error:', err);
             this.isReady = false;
         });
 
         this.redisClient.on('ready', () => {
             this.isReady = true;
+            console.log('🔔 Redis ready');
         });
     }
 
@@ -39,18 +42,24 @@ export class Subscription {
         return this.instance;
     }
 
-    public subscribe(userId: string, subscription: string) {
+    // Add method to ensure Redis is ready
+    private async ensureReady() {
         if (!this.isReady) {
-            console.error('Redis not ready, cannot subscribe');
-            return;
+            await this.readyPromise; // Wait for connection
         }
+    }
+
+    public async subscribe(userId: string, subscription: string) {
+        // Wait for Redis to be ready
+        await this.ensureReady();
 
         if (!this.isValidSubscription(subscription)) {
-            console.warn(`Invalid subscription format: ${subscription}`);
+            console.warn(`⚠️ Invalid subscription format: ${subscription}`);
             return;
         }
 
         if (this.userSubscriptions.get(userId)?.includes(subscription)) {
+            console.log(`⚠️ User ${userId} already subscribed to ${subscription}`);
             return;
         }
 
@@ -65,8 +74,10 @@ export class Subscription {
         );
 
         if (this.topicSubscribers.get(subscription)?.length === 1) {
-            this.redisClient.subscribe(subscription, this.Callback);
-            console.log(`Subscribed to Redis channel: ${subscription}`);
+            await this.redisClient.subscribe(subscription, this.Callback);
+            console.log(`🟢 Subscribed to Redis channel: ${subscription}`);
+        } else {
+            console.log(`🟢 User ${userId} added to existing subscription: ${subscription}`);
         }
     }
 
@@ -74,21 +85,30 @@ export class Subscription {
         try {
             const parsedMessage = JSON.parse(message);
             const subscribers = this.topicSubscribers.get(channel);
-            
-            if (!subscribers) return;
 
+            if (!subscribers) {
+                console.warn(`⚠️ No subscribers for channel: ${channel}`);
+                return;
+            }
+
+            console.log(`📡 Broadcasting to ${subscribers.length} subscribers on ${channel}`);
             subscribers.forEach(userId => {
                 const user = UserManager.getInstance().getUser(userId);
                 if (user) {
                     user.emit(parsedMessage);
+                    console.log(`📨 Message sent to user ${userId} on ${channel}`);
+                } else {
+                    console.warn(`⚠️ User ${userId} not found in UserManager`);
                 }
             });
         } catch (error) {
-            console.error('Error processing Redis message:', error);
+            console.error('❌ Error processing Redis message:', error);
         }
     }
 
-    public unsubscribe(userId: string, subscription: string) {
+    public async unsubscribe(userId: string, subscription: string) {
+        await this.ensureReady();
+
         const userSubs = this.userSubscriptions.get(userId);
         if (userSubs) {
             const filtered = userSubs.filter(s => s !== subscription);
@@ -102,28 +122,32 @@ export class Subscription {
         const subscribers = this.topicSubscribers.get(subscription);
         if (subscribers) {
             const newSubscribers = subscribers.filter(s => s !== userId);
-            
+
             if (newSubscribers.length === 0) {
-                this.redisClient.unsubscribe(subscription);
+                await this.redisClient.unsubscribe(subscription);
                 this.topicSubscribers.delete(subscription);
-                console.log(`Unsubscribed from Redis channel: ${subscription}`);
+                console.log(`🔴 Unsubscribed from Redis channel: ${subscription}`);
             } else {
                 this.topicSubscribers.set(subscription, newSubscribers);
             }
         }
     }
 
-    public userLeft(userId: string) {
+    public async userLeft(userId: string) {
         const subscriptions = this.userSubscriptions.get(userId);
         if (subscriptions) {
-            subscriptions.forEach(sub => this.unsubscribe(userId, sub));
+            for (const sub of subscriptions) {
+                await this.unsubscribe(userId, sub);
+            }
+            console.log(`🟠 User left: ${userId}`);
         }
     }
 
-    private isValidSubscription(sub: string): boolean {
-        const pattern = /^[A-Z0-9]+@(ticker|depth|trade|kline)$/;
-        return pattern.test(sub) && sub.length < 50;
-    }
+private isValidSubscription(sub: string): boolean {
+    // Changed pattern to match depth@SYMBOL format from Engine
+    const pattern = /^(ticker|depth|trade|kline)@[A-Z0-9_]+$/;
+    return pattern.test(sub) && sub.length < 50;
+}
 
     public getStats() {
         return {
@@ -136,9 +160,9 @@ export class Subscription {
     public async cleanup() {
         try {
             await this.redisClient.quit();
-            console.log('Redis connection closed');
+            console.log('🔒 Redis connection closed');
         } catch (error) {
-            console.error('Error closing Redis connection:', error);
+            console.error('❌ Error closing Redis connection:', error);
         }
     }
 }
