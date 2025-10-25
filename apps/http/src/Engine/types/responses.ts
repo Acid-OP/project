@@ -62,6 +62,12 @@ export type ResponseToHTTP = {
       price: string,
       quantity: string,
       side: "buy" | "sell",
+      priceChange: string,           
+      priceChangePercent: string,    
+      high24h: string,               
+      low24h: string,                
+      volume24h: string,             
+      quoteVolume24h: string,        
       timestamp: number
     }
 }
@@ -81,9 +87,14 @@ export type TickerData = {
     price: string;         
     quantity: string;    
     side: "buy" | "sell";  
+    priceChange: string;           
+    priceChangePercent: string; 
+    high24h: string;              
+    low24h: string;                
+    volume24h: string;          
+    quoteVolume24h: string;       
     timestamp: number;     
 };
-
 export type DepthData = {
     event: "depth";
     symbol: string;
@@ -91,3 +102,18 @@ export type DepthData = {
     bids: [string, string][];
     timestamp: number;
 };
+
+export interface TradeHistoryEntry {
+    price: number;
+    quantity: number;
+    timestamp: number;
+}
+
+export interface MarketStats {
+    open24h: number;
+    high24h: number;
+    low24h: number;
+    volume24h: number;
+    quoteVolume24h: number;
+    lastPrice: number;
+}

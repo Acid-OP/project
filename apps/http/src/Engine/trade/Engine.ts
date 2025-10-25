@@ -1,20 +1,155 @@
 import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_TICKER } from "../../types/orders";
 import { RedisManager } from "../RedisManager";
-import { DepthData, ResponseFromHTTP, TickerData, TradeData } from "../types/responses";
-import { BASE_CURRENCY, Fill, Order, UserBalance, userId } from "../types/UserTypes";
+import { DepthData, MarketStats, ResponseFromHTTP, TickerData, TradeData, TradeHistoryEntry } from "../types/responses";
+import { BASE_CURRENCY, Fill, Order, UserBalance, userId } from "../types/trading";
 import { OrderBook } from "./OrderBook";
+
 export class Engine {
     private orderBooks:OrderBook[] = [];
     private balances: Map<userId , UserBalance> = new Map();
+    private tradeHistory: Map<string, TradeHistoryEntry[]> = new Map();
+    private marketStats: Map<string, MarketStats> = new Map();
+    
+    private latestTickers: Record<string, any> = {};
     constructor() {
         console.log('[Engine] Initializing Engine with orderbooks');
         this.orderBooks = [
             new OrderBook("CR7_USD", [] , [] , 0 , 50000),
             new OrderBook("ELON_USD", [] , [] , 0 , 50000)
         ];
+        this.initializeMarketStats();
         console.log('[Engine] Engine initialized with markets:', this.orderBooks.map(ob => ob.getMarketPair()));
     }
     
+    private initializeMarketStats() {
+        console.log('[Engine] Initializing market stats');
+        const markets = this.orderBooks.map(ob => ob.getMarketPair());
+        
+        markets.forEach(market => {
+            this.tradeHistory.set(market, []);
+            this.marketStats.set(market, {
+                open24h: 0,
+                high24h: 0,
+                low24h: 0,
+                volume24h: 0,
+                quoteVolume24h: 0,
+                lastPrice: 0
+            });
+        });
+    }
+
+    private cleanOldTrades(market: string): void {
+        const history = this.tradeHistory.get(market);
+        if (!history) return;
+        
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const filteredHistory = history.filter(trade => trade.timestamp > twentyFourHoursAgo);
+        
+        this.tradeHistory.set(market, filteredHistory);
+        console.log(`[Engine] Cleaned old trades for ${market}. Remaining: ${filteredHistory.length}`);
+    }
+
+    private calculate24hStats(market: string): MarketStats {
+        const history = this.tradeHistory.get(market) || [];
+        
+        if (history.length === 0) {
+            const currentStats = this.marketStats.get(market);
+            return currentStats || {
+                open24h: 0,
+                high24h: 0,
+                low24h: 0,
+                volume24h: 0,
+                quoteVolume24h: 0,
+                lastPrice: 0
+            };
+        }
+        
+        const open24h = history[0]?.price || 0;
+        const high24h = Math.max(...history.map(t => t.price));
+        const low24h = Math.min(...history.map(t => t.price));
+        const volume24h = history.reduce((sum, t) => sum + t.quantity, 0);
+        const quoteVolume24h = history.reduce((sum, t) => sum + (t.price * t.quantity), 0);
+        const lastPrice = history[history.length - 1]?.price || 0;
+        
+        return {
+            open24h,
+            high24h,
+            low24h,
+            volume24h,
+            quoteVolume24h,
+            lastPrice
+        };
+    }
+
+    private updateMarketStats(market: string, fills: Fill[]): void {
+        const history = this.tradeHistory.get(market) || [];
+        
+        fills.forEach(fill => {
+            const price = Number(fill.price);
+            const quantity = fill.qty;
+            
+            history.push({
+                price,
+                quantity,
+                timestamp: Date.now()
+            });
+        });
+        
+        this.tradeHistory.set(market, history);
+        
+        // Clean old trades periodically (every 100 trades to avoid overhead)
+        if (history.length % 100 === 0) {
+            this.cleanOldTrades(market);
+        }
+        
+        // Recalculate stats
+        const stats = this.calculate24hStats(market);
+        this.marketStats.set(market, stats);
+        
+        console.log(`[Engine] Updated stats for ${market} - Last: ${stats.lastPrice}, High: ${stats.high24h}, Low: ${stats.low24h}`);
+    }
+
+    private getEnhancedTicker(market: string, side: "buy" | "sell"): any {
+        const stats = this.marketStats.get(market);
+        
+        if (!stats || stats.lastPrice === 0) {
+            return {
+                event: "ticker",
+                symbol: market,
+                price: "0",
+                quantity: "0",
+                side: side,
+                priceChange: "0",
+                priceChangePercent: "0.00",
+                high24h: "0",
+                low24h: "0",
+                volume24h: "0",
+                quoteVolume24h: "0",
+                timestamp: Date.now()
+            };
+        }
+        
+        const priceChange = stats.lastPrice - stats.open24h;
+        const priceChangePercent = (stats.open24h && stats.open24h !== 0)
+            ? ((priceChange / stats.open24h) * 100).toFixed(2)
+            : "0.00";
+        
+        return {
+            event: "ticker",
+            symbol: market,
+            price: stats.lastPrice.toString(),
+            quantity: "0",  // ← FIXED: Not using volume24h here
+            side: side,
+            priceChange: priceChange.toString(),
+            priceChangePercent: priceChangePercent,
+            high24h: stats.high24h.toString(),
+            low24h: stats.low24h.toString(),
+            volume24h: stats.volume24h.toString(),
+            quoteVolume24h: stats.quoteVolume24h.toString(),
+            timestamp: Date.now()
+        };
+    }
+
     private updateBalancesAfterTrade(
         userId: string, 
         fills: Fill[], 
@@ -111,7 +246,7 @@ export class Engine {
          
         return { executedQty, fills, orderId: order.orderId };
     }
-    private latestTickers: Record<string, any> = {};
+
     private publishTrades(fills: Fill[], market: string, side: "buy" | "sell") {
         console.log(`[Engine] Publishing ${fills.length} trades for ${market}`);
         fills.forEach(fill => {
@@ -130,59 +265,82 @@ export class Engine {
                 data: tradeData
             });
         });
-        
+        this.updateMarketStats(market, fills);
         const priceGroups = new Map<string, number>();
         fills.forEach(fill => {
             const currentQty = priceGroups.get(fill.price) || 0;
             priceGroups.set(fill.price, currentQty + fill.qty);
         });
-        
         priceGroups.forEach((totalQty, price) => {
-            const tickerData: TickerData = {
+            const stats = this.marketStats.get(market); 
+            if (!stats) return;
+            const priceChange = Number(price) - stats.open24h;
+            const priceChangePercent = (stats.open24h && stats.open24h !== 0)
+                ? ((priceChange / stats.open24h) * 100).toFixed(2)
+                : "0.00";
+            
+            const enhancedTickerData = {
                 event: "ticker",
                 symbol: market,
                 price: price,
                 quantity: totalQty.toString(),
                 side: side,
+                priceChange: priceChange.toString(),
+                priceChangePercent: priceChangePercent,
+                high24h: stats.high24h.toString(),
+                low24h: stats.low24h.toString(),
+                volume24h: stats.volume24h.toString(),
+                quoteVolume24h: stats.quoteVolume24h.toString(),
                 timestamp: Date.now()
             };
             
             RedisManager.getInstance().Publish(`ticker@${market}`, {
                 stream: `ticker@${market}`,
-                data: tickerData
+                data: enhancedTickerData
             });
         });
         
         if (fills.length > 0) {
             const lastFill = fills[fills.length - 1];
-            if(!lastFill){
-                return;
-            }
-            const lastPriceQty = priceGroups.get(lastFill.price) || 0;
+            if (!lastFill) return;
+            
+            const stats = this.marketStats.get(market);
+            if (!stats) return;
+            
+            const priceChange = Number(lastFill.price) - stats.open24h;
+            const priceChangePercent = (stats.open24h && stats.open24h !== 0)
+                ? ((priceChange / stats.open24h) * 100).toFixed(2)
+                : "0.00";
             
             this.latestTickers[market] = {
                 event: "ticker",
                 symbol: market,
                 price: lastFill.price,
-                quantity: lastPriceQty.toString(),
+                quantity: lastFill.qty.toString(),  
                 side: side,
+                priceChange: priceChange.toString(),
+                priceChangePercent: priceChangePercent,
+                high24h: stats.high24h.toString(),
+                low24h: stats.low24h.toString(),
+                volume24h: stats.volume24h.toString(),
+                quoteVolume24h: stats.quoteVolume24h.toString(),
                 timestamp: Date.now()
-            };
+            };     
             console.log(`[Engine] Latest ticker updated for ${market}: ${lastFill.price}`);
         }
     }
-    
+        
     private defaultBalances(userId:string) {
         if(!userId) {
             return
         }
         if (!this.balances.has(userId)) {
             console.log(`[Engine] Initializing default balance for user ${userId}`);
-        const defaultBalance = {
-            [BASE_CURRENCY]: { available: 100000, locked: 0 }, // Increased to 100k
-            "CR7": { available: 1000, locked: 0 },
-            "ELON": { available: 1000, locked: 0 }
-        };
+            const defaultBalance = {
+                [BASE_CURRENCY]: { available: 100000, locked: 0 }, 
+                "CR7": { available: 1000, locked: 0 },
+                "ELON": { available: 1000, locked: 0 }
+            };
             this.balances.set(userId, defaultBalance);
             console.log(`[Engine] Default balance set: ${BASE_CURRENCY}: 10000`);
         }
@@ -439,35 +597,35 @@ export class Engine {
                     });
                 }
                 break;
-            case GET_TICKER:
-                console.log(`[Engine] GET_TICKER received for market:`, message.data.market);
-                try {
-                    const market = message.data.market;
-                    const lastTicker = this.latestTickers?.[market];
-                    if (!lastTicker) {
-                        throw new Error(`No ticker found for ${market}`);
+                case GET_TICKER:
+                    console.log(`[Engine] GET_TICKER received for market:`, message.data.market);
+                    try {
+                        const market = message.data.market;
+                        const lastTicker = this.latestTickers?.[market];
+                        
+                        if (!lastTicker) {
+                            // If no ticker exists, generate one from current stats
+                            const enhancedTicker = this.getEnhancedTicker(market, "buy");
+                            console.log(`[Engine] Generated new ticker for ${market}`);
+                            RedisManager.getInstance().ResponseToHTTP(clientId, {
+                                type: "TICKER",
+                                payload: enhancedTicker
+                            });
+                        } else {
+                            console.log(`[Engine] TICKER response - price: ${lastTicker.price}, priceChange: ${lastTicker.priceChange}`);
+                            RedisManager.getInstance().ResponseToHTTP(clientId, {
+                                type: "TICKER",
+                                payload: lastTicker
+                            });
+                        }
+                    } catch (e) {
+                        console.error("[Engine] Error during GET_TICKER:", e);
+                        const fallbackTicker = this.getEnhancedTicker(message.data.market, "buy");
+                        RedisManager.getInstance().ResponseToHTTP(clientId, {
+                            type: "TICKER",
+                            payload: fallbackTicker
+                        });
                     }
-                    console.log(`[Engine] TICKER response - price: ${lastTicker.price}, quantity: ${lastTicker.quantity}`);
-                    RedisManager.getInstance().ResponseToHTTP(clientId, {
-                        type: "TICKER",
-                        payload: lastTicker
-                    });
-                } catch (e) {
-                    console.error("[Engine] Error during GET_TICKER:", e);
-                    const fallbackTicker: TickerData = {
-                        event: "ticker",
-                        symbol: message.data.market,
-                        price: "0",
-                        quantity: "0",
-                        side: "buy",
-                        timestamp: Date.now()
-                    };
-                    console.log(`[Engine] Sending fallback ticker for ${message.data.market}`);
-                    RedisManager.getInstance().ResponseToHTTP(clientId, {
-                        type: "TICKER",
-                        payload: fallbackTicker
-                    });
-                }
                 break;
 
             default:

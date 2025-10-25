@@ -1,4 +1,3 @@
-// AskOrders.tsx (NO CHANGES - already perfect)
 import React from 'react';
 
 interface Order {
@@ -22,12 +21,10 @@ export function AskOrders({ asks, maxTotal, calculateBarWidth, calculateSizeBarW
           key={`ask-${idx}`}
           className="relative grid grid-cols-3 px-4 py-0.5 hover:bg-gray-900 cursor-pointer"
         >
-          {/* Light shade - Cumulative Total */}
           <div
             className="absolute right-0 top-0 bottom-0 bg-[#3a1e24]"
             style={{ width: `${calculateBarWidth(ask.total, maxTotal)}%` }}
           ></div>
-          {/* Dark shade - Individual Size */}
           <div
             className="absolute right-0 top-0 bottom-0 bg-[#792c31]"
             style={{ width: `${calculateSizeBarWidth(ask.size, maxTotal)}%` }}

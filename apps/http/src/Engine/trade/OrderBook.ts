@@ -1,4 +1,4 @@
-import { BASE_CURRENCY, Fill, Order } from "../types/UserTypes";
+import { BASE_CURRENCY, Fill, Order } from "../types/trading";
 
 
 export class OrderBook {

@@ -7,11 +7,11 @@ export class Subscription {
     private topicSubscribers: Map<string, string[]> = new Map();
     private redisClient: RedisClientType;
     private isReady: boolean = false;
-    private readyPromise: Promise<void>; // Add this
+    private readyPromise: Promise<void>; 
 
     constructor() {
         this.redisClient = createClient();
-        this.readyPromise = this.initRedis(); // Store the promise
+        this.readyPromise = this.initRedis(); 
     }
 
     private async initRedis(): Promise<void> {
@@ -21,7 +21,7 @@ export class Subscription {
             console.log('✅ Redis connected successfully');
         } catch (error) {
             console.error('❌ Redis connection failed:', error);
-            throw error; // Re-throw to handle in caller
+            throw error; 
         }
 
         this.redisClient.on('error', (err) => {
@@ -42,15 +42,13 @@ export class Subscription {
         return this.instance;
     }
 
-    // Add method to ensure Redis is ready
     private async ensureReady() {
         if (!this.isReady) {
-            await this.readyPromise; // Wait for connection
+            await this.readyPromise; 
         }
     }
 
     public async subscribe(userId: string, subscription: string) {
-        // Wait for Redis to be ready
         await this.ensureReady();
 
         if (!this.isValidSubscription(subscription)) {
@@ -92,10 +90,12 @@ export class Subscription {
             }
 
             console.log(`📡 Broadcasting to ${subscribers.length} subscribers on ${channel}`);
+            
             subscribers.forEach(userId => {
                 const user = UserManager.getInstance().getUser(userId);
                 if (user) {
-                    user.emit(parsedMessage);
+                    const transformedMessage = this.transformMessage(parsedMessage, channel);
+                    user.emit(transformedMessage);
                     console.log(`📨 Message sent to user ${userId} on ${channel}`);
                 } else {
                     console.warn(`⚠️ User ${userId} not found in UserManager`);
@@ -104,6 +104,60 @@ export class Subscription {
         } catch (error) {
             console.error('❌ Error processing Redis message:', error);
         }
+    }
+
+    private transformMessage(parsedMessage: any, channel: string): any {
+        const { stream, data } = parsedMessage;
+        
+        if (stream && stream.startsWith('ticker@')) {
+            return {
+                type: "ticker",
+                data: {
+                    c: data.price,                    
+                    h: data.high24h,                  
+                    l: data.low24h,                   
+                    v: data.volume24h,               
+                    V: data.quoteVolume24h,           
+                    s: data.symbol,                 
+                    p: data.priceChange,         
+                    P: data.priceChangePercent,    
+                    q: data.quantity,                
+                    side: data.side,                  
+                    id: Date.now(),
+                    e: "ticker"
+                }
+            };
+        }
+        
+        if (stream && stream.startsWith('depth@')) {
+            return {
+                type: "depth",
+                data: {
+                    b: data.bids,
+                    a: data.asks,
+                    id: Date.now(),
+                    e: "depth"
+                }
+            };
+        }
+        
+        if (stream && stream.startsWith('trade@')) {
+            return {
+                type: "trade",
+                data: {
+                    t: data.tradeId,
+                    p: data.price,
+                    q: data.quantity,
+                    s: data.symbol,
+                    side: data.side,
+                    T: data.timestamp,
+                    id: Date.now(),
+                    e: "trade"
+                }
+            };
+        }
+        console.warn(`⚠️ Unknown message format on channel ${channel}`);
+        return parsedMessage;
     }
 
     public async unsubscribe(userId: string, subscription: string) {
@@ -139,15 +193,14 @@ export class Subscription {
             for (const sub of subscriptions) {
                 await this.unsubscribe(userId, sub);
             }
-            console.log(`🟠 User left: ${userId}`);
+            console.log(`User left: ${userId}`);
         }
     }
 
-private isValidSubscription(sub: string): boolean {
-    // Changed pattern to match depth@SYMBOL format from Engine
-    const pattern = /^(ticker|depth|trade|kline)@[A-Z0-9_]+$/;
-    return pattern.test(sub) && sub.length < 50;
-}
+    private isValidSubscription(sub: string): boolean {
+        const pattern = /^(ticker|depth|trade|kline)@[A-Z0-9_]+$/;
+        return pattern.test(sub) && sub.length < 50;
+    }
 
     public getStats() {
         return {

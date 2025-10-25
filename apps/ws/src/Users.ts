@@ -27,7 +27,6 @@ export class Users {
             if (response.method === SUBSCRIBE) {
                 console.log(`🔔 Subscribing user ${this.id} to:`, response.params);
                 for (const sub of response.params) {
-                    // Convert CR7_USD@depth to depth@CR7_USD format
                     const [symbol, type] = sub.split('@');
                     const engineFormat = `${type}@${symbol}`;
                     
@@ -39,7 +38,6 @@ export class Users {
             if (response.method === UNSUBSCRIBE) {
                 console.log(`🔕 Unsubscribing user ${this.id} from:`, response.params);
                 for (const sub of response.params) {
-                    // Convert CR7_USD@depth to depth@CR7_USD format
                     const [symbol, type] = sub.split('@');
                     const engineFormat = `${type}@${symbol}`;
                     

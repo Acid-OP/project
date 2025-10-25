@@ -16,16 +16,20 @@ export type IncomingMessage = SubscribeMessage | UnsubscribeMessage;
 export type TickerUpdateMessage = {
     type: "ticker",
     data: {
-        c?: string,
-        h?: string,
-        l?: string,
-        v?: string,
-        V?: string,
-        s?: string,
+        c?: string,          
+        h?: string,              
+        l?: string,              
+        v?: string,              
+        V?: string,              
+        s?: string,             
+        p?: string,          
+        P?: string,          
+        q?: string,             
+        side?: "buy" | "sell",  
         id: number,
         e: "ticker"
     }
-} 
+}
 
 export type DepthUpdateMessage = {
     type: "depth",
