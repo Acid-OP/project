@@ -51,9 +51,9 @@ export class Engine {
 
     private calculate24hStats(market: string): MarketStats {
         const history = this.tradeHistory.get(market) || [];
+        const currentStats = this.marketStats.get(market);
         
         if (history.length === 0) {
-            const currentStats = this.marketStats.get(market);
             return currentStats || {
                 open24h: 0,
                 high24h: 0,
@@ -64,7 +64,10 @@ export class Engine {
             };
         }
         
-        const open24h = history[0]?.price || 0;
+        const open24h = currentStats?.open24h && currentStats.open24h !== 0 
+            ? currentStats.open24h 
+            : history[0]?.price || 0;
+        
         const high24h = Math.max(...history.map(t => t.price));
         const low24h = Math.min(...history.map(t => t.price));
         const volume24h = history.reduce((sum, t) => sum + t.quantity, 0);

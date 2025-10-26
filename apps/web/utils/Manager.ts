@@ -79,12 +79,21 @@ export class SignalingManager {
       const message = JSON.parse(event.data);
       console.log('📩 Message received:', message);
       
-      const stream = message.stream;
+      const type = message.type as MessageType;
       const data = message.data;
       
-      if (!stream || !data) return;
-
-      const [type, symbol] = stream.split('@') as [MessageType, string];
+      if (!type || !data) {
+        console.warn('⚠️ Invalid message format:', message);
+        return;
+      }
+  
+  const symbol = data.symbol;  // ✅ Changed from data.s to data.symbol
+  
+  if (!symbol) {
+    console.warn('⚠️ No symbol in message:', message);
+    return;
+  }
+  console.log(`🎯 Processing ${type} for ${symbol}`);
 
       switch (type) {
         case 'ticker':
@@ -96,6 +105,8 @@ export class SignalingManager {
         case 'trade':
           this.handleTradeUpdate(symbol, data);
           break;
+        default:
+          console.warn('⚠️ Unknown message type:', type);
       }
     };
 
@@ -162,59 +173,58 @@ export class SignalingManager {
   }
 
   private handleTickerUpdate(symbol: string, data: any) {
-    // Just pass through what backend sends - no calculations
     const ticker: Ticker = {
-      symbol: symbol,
+      symbol: data.symbol,
       lastPrice: data.price,
-      priceChange: data.priceChange || '0',
-      priceChangePercent: data.priceChangePercent || '0',
-      high24h: data.high24h || '0',
-      low24h: data.low24h || '0',
-      volume24h: data.volume24h || '0',
-      quoteVolume24h: data.quoteVolume24h || '0',
+      priceChange: data.priceChange,
+      priceChangePercent: data.priceChangePercent,
+      high24h: data.high24h,
+      low24h: data.low24h,
+      volume24h: data.volume24h,
+      quoteVolume24h: data.quoteVolume24h,
       lastQuantity: data.quantity,
       lastSide: data.side,
       timestamp: data.timestamp
     };
 
-    this.callbacks.ticker.forEach(({ callback }) => {
-      callback(ticker);
-    });
+      this.callbacks.ticker.forEach(({ callback }) => {
+        callback(ticker);
+      });
   }
 
   private handleDepthUpdate(symbol: string, data: any) {
-    const depthUpdate: DepthUpdate = {
-      symbol: symbol,
-      bids: data.bids,
-      asks: data.asks,
-      timestamp: data.timestamp
-    };
+      const depthUpdate: DepthUpdate = {
+        symbol: symbol,
+        bids: data.b || [],    
+        asks: data.a || [],       
+        timestamp: data.id || Date.now()  
+      };
 
-    this.depthCache[symbol] = depthUpdate;
+      this.depthCache[symbol] = depthUpdate;
 
-    this.callbacks.depth.forEach(({ callback }) => {
-      callback(depthUpdate);
-    });
+      this.callbacks.depth.forEach(({ callback }) => {
+        callback(depthUpdate);
+      });
   }
 
   private handleTradeUpdate(symbol: string, data: any) {
-    const trade: Trade = {
-      tradeId: data.tradeId,
-      symbol: symbol,
-      price: data.price,
-      quantity: data.quantity,
-      side: data.side,
-      timestamp: data.timestamp
-    };
+      const trade: Trade = {
+        tradeId: data.t || 0,        
+        symbol: symbol,
+        price: data.p || '0',         
+        quantity: data.q || '0',      
+        side: data.side || 'buy',
+        timestamp: data.T || Date.now()
+      };
 
-    if (!this.tradeCache[symbol]) {
-      this.tradeCache[symbol] = [];
-    }
-    this.tradeCache[symbol] = [trade, ...this.tradeCache[symbol]].slice(0, 100);
+      if (!this.tradeCache[symbol]) {
+        this.tradeCache[symbol] = [];
+      }
+      this.tradeCache[symbol] = [trade, ...this.tradeCache[symbol]].slice(0, 100);
 
-    this.callbacks.trade.forEach(({ callback }) => {
-      callback(trade);
-    });
+      this.callbacks.trade.forEach(({ callback }) => {
+        callback(trade);
+      });
   }
 
   public registerCallback(type: MessageType, callback: (data: any) => void, id: string) {

@@ -113,18 +113,18 @@ export class Subscription {
             return {
                 type: "ticker",
                 data: {
-                    c: data.price,                    
-                    h: data.high24h,                  
-                    l: data.low24h,                   
-                    v: data.volume24h,               
-                    V: data.quoteVolume24h,           
-                    s: data.symbol,                 
-                    p: data.priceChange,         
-                    P: data.priceChangePercent,    
-                    q: data.quantity,                
-                    side: data.side,                  
-                    id: Date.now(),
-                    e: "ticker"
+                    event: data.event || "ticker",
+                    symbol: data.symbol,
+                    price: data.price,
+                    quantity: data.quantity,
+                    side: data.side,
+                    priceChange: data.priceChange,
+                    priceChangePercent: data.priceChangePercent,
+                    high24h: data.high24h,
+                    low24h: data.low24h,
+                    volume24h: data.volume24h,
+                    quoteVolume24h: data.quoteVolume24h,
+                    timestamp: data.timestamp || Date.now()
                 }
             };
         }
@@ -133,10 +133,11 @@ export class Subscription {
             return {
                 type: "depth",
                 data: {
-                    b: data.bids,
-                    a: data.asks,
-                    id: Date.now(),
-                    e: "depth"
+                    event: data.event || "depth",
+                    symbol: data.symbol,
+                    bids: data.bids,
+                    asks: data.asks,
+                    timestamp: data.timestamp || Date.now()
                 }
             };
         }
@@ -145,17 +146,17 @@ export class Subscription {
             return {
                 type: "trade",
                 data: {
-                    t: data.tradeId,
-                    p: data.price,
-                    q: data.quantity,
-                    s: data.symbol,
+                    event: data.event || "trade",
+                    tradeId: data.tradeId,
+                    symbol: data.symbol,
+                    price: data.price,
+                    quantity: data.quantity,
                     side: data.side,
-                    T: data.timestamp,
-                    id: Date.now(),
-                    e: "trade"
+                    timestamp: data.timestamp || Date.now()
                 }
             };
         }
+        
         console.warn(`⚠️ Unknown message format on channel ${channel}`);
         return parsedMessage;
     }

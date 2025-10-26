@@ -13,32 +13,49 @@ export type UnsubscribeMessage = {
 
 export type IncomingMessage = SubscribeMessage | UnsubscribeMessage;
 
+// ✅ FIXED: Using descriptive field names to match backend
 export type TickerUpdateMessage = {
     type: "ticker",
     data: {
-        c?: string,          
-        h?: string,              
-        l?: string,              
-        v?: string,              
-        V?: string,              
-        s?: string,             
-        p?: string,          
-        P?: string,          
-        q?: string,             
-        side?: "buy" | "sell",  
-        id: number,
-        e: "ticker"
+        event: "ticker",
+        symbol: string,                    // Market pair (e.g., "CR7_USD")
+        price: string,                     // Last trade price
+        quantity: string,                  // Last trade quantity
+        side: "buy" | "sell",             // Last trade side
+        priceChange: string,               // Absolute price change from 24h open
+        priceChangePercent: string,        // Percentage change (e.g., "4.00")
+        high24h: string,                   // Highest price in 24h
+        low24h: string,                    // Lowest price in 24h
+        volume24h: string,                 // Total base asset volume in 24h
+        quoteVolume24h: string,            // Total quote asset volume in 24h
+        timestamp: number                  // Unix timestamp in milliseconds
     }
 }
 
+// ✅ FIXED: Using descriptive field names to match backend
 export type DepthUpdateMessage = {
     type: "depth",
     data: {
-        b?: [string, string][],
-        a?: [string, string][],
-        id: number,
-        e: "depth"
+        event: "depth",
+        symbol: string,                    // Market pair
+        bids: [string, string][],          // [[price, quantity], ...]
+        asks: [string, string][],          // [[price, quantity], ...]
+        timestamp: number                  // Unix timestamp
     }
 }
 
-export type OutgoingMessage = TickerUpdateMessage | DepthUpdateMessage;
+// ✅ ADDED: Trade update message type
+export type TradeUpdateMessage = {
+    type: "trade",
+    data: {
+        event: "trade",
+        tradeId: number,
+        symbol: string,
+        price: string,
+        quantity: string,
+        side: "buy" | "sell",
+        timestamp: number
+    }
+}
+
+export type OutgoingMessage = TickerUpdateMessage | DepthUpdateMessage | TradeUpdateMessage;
