@@ -13,38 +13,35 @@ export type UnsubscribeMessage = {
 
 export type IncomingMessage = SubscribeMessage | UnsubscribeMessage;
 
-// ✅ FIXED: Using descriptive field names to match backend
 export type TickerUpdateMessage = {
     type: "ticker",
     data: {
         event: "ticker",
-        symbol: string,                    // Market pair (e.g., "CR7_USD")
-        price: string,                     // Last trade price
-        quantity: string,                  // Last trade quantity
-        side: "buy" | "sell",             // Last trade side
-        priceChange: string,               // Absolute price change from 24h open
-        priceChangePercent: string,        // Percentage change (e.g., "4.00")
-        high24h: string,                   // Highest price in 24h
-        low24h: string,                    // Lowest price in 24h
-        volume24h: string,                 // Total base asset volume in 24h
-        quoteVolume24h: string,            // Total quote asset volume in 24h
-        timestamp: number                  // Unix timestamp in milliseconds
+        symbol: string,                    
+        price: string,                    
+        quantity: string,                 
+        side: "buy" | "sell",             
+        priceChange: string,              
+        priceChangePercent: string,      
+        high24h: string,                  
+        low24h: string,                    
+        volume24h: string,               
+        quoteVolume24h: string,       
+        timestamp: number              
     }
 }
 
-// ✅ FIXED: Using descriptive field names to match backend
 export type DepthUpdateMessage = {
     type: "depth",
     data: {
         event: "depth",
-        symbol: string,                    // Market pair
-        bids: [string, string][],          // [[price, quantity], ...]
-        asks: [string, string][],          // [[price, quantity], ...]
-        timestamp: number                  // Unix timestamp
+        symbol: string,                   
+        bids: [string, string][],        
+        asks: [string, string][],         
+        timestamp: number               
     }
 }
 
-// ✅ ADDED: Trade update message type
 export type TradeUpdateMessage = {
     type: "trade",
     data: {

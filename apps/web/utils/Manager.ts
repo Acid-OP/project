@@ -87,28 +87,28 @@ export class SignalingManager {
         return;
       }
   
-  const symbol = data.symbol;  // ✅ Changed from data.s to data.symbol
-  
-  if (!symbol) {
-    console.warn('⚠️ No symbol in message:', message);
-    return;
-  }
-  console.log(`🎯 Processing ${type} for ${symbol}`);
+    const symbol = data.symbol; 
+    
+    if (!symbol) {
+      console.warn('⚠️ No symbol in message:', message);
+      return;
+    }
+    console.log(`🎯 Processing ${type} for ${symbol}`);
 
-      switch (type) {
-        case 'ticker':
-          this.handleTickerUpdate(symbol, data);
-          break;
-        case 'depth':
-          this.handleDepthUpdate(symbol, data);
-          break;
-        case 'trade':
-          this.handleTradeUpdate(symbol, data);
-          break;
-        default:
-          console.warn('⚠️ Unknown message type:', type);
-      }
-    };
+    switch (type) {
+      case 'ticker':
+        this.handleTickerUpdate(symbol, data);
+        break;
+      case 'depth':
+        this.handleDepthUpdate(symbol, data);
+        break;
+      case 'trade':
+        this.handleTradeUpdate(symbol, data);
+        break;
+      default:
+        console.warn('⚠️ Unknown message type:', type);
+    }
+  };
 
     this.ws.onerror = (error) => {
       console.error('❌ WebSocket Error:', error);
