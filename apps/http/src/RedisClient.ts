@@ -39,7 +39,6 @@ export class Manager {
             const id = this.getRandomClientId();
             const dataToQueue = { clientId: id, message };
 
-            // Use pubSubClient for SUBSCRIBE
             this.pubSubClient.subscribe(id, (msg) => {
                 console.log(`📥 Received message on channel ${id}:`, msg);
                 this.pubSubClient.unsubscribe(id);
@@ -51,7 +50,6 @@ export class Manager {
                 }
             });
 
-            // Use regular client for LPUSH
             this.client.lPush("body", JSON.stringify(dataToQueue))
                 .then(() => console.log("🧾 Message pushed to queue:", dataToQueue))
                 .catch((err) => {
@@ -61,7 +59,6 @@ export class Manager {
         });
     }
 
-    // Add cleanup method
     public async cleanup() {
         await this.client.quit();
         await this.pubSubClient.quit();

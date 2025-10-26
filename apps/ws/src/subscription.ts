@@ -112,6 +112,7 @@ export class Subscription {
         if (stream && stream.startsWith('ticker@')) {
             return {
                 type: "ticker",
+                stream: stream,
                 data: {
                     event: data.event || "ticker",
                     symbol: data.symbol,
@@ -132,6 +133,7 @@ export class Subscription {
         if (stream && stream.startsWith('depth@')) {
             return {
                 type: "depth",
+                stream: stream,
                 data: {
                     event: data.event || "depth",
                     symbol: data.symbol,
@@ -145,6 +147,7 @@ export class Subscription {
         if (stream && stream.startsWith('trade@')) {
             return {
                 type: "trade",
+                stream: stream,
                 data: {
                     event: data.event || "trade",
                     tradeId: data.tradeId,

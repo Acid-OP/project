@@ -26,7 +26,6 @@ export function BidOrders({ bids, maxTotal, calculateBarWidth, calculateSizeBarW
             className="absolute right-0 top-0 bottom-0 bg-[#11312a]"
             style={{ width: `${calculateBarWidth(bid.total, maxTotal)}%` }}
           ></div>
-          {/* Dark shade - Individual Size */}
           <div
             className="absolute right-0 top-0 bottom-0 bg-[#0c5f43]"
             style={{ width: `${calculateSizeBarWidth(bid.size, maxTotal)}%` }}

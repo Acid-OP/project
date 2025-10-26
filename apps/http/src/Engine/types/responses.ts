@@ -50,26 +50,10 @@ export type ResponseToHTTP = {
     }
   } | {
     type: "DEPTH",
-    payload: {
-      aggregatedBids: [string, string][];
-      aggregatedAsks: [string, string][];
-    }
+    payload: DepthData 
   } | {
     type: "TICKER",
-    payload: {
-      event: "ticker",
-      symbol: string,
-      price: string,
-      quantity: string,
-      side: "buy" | "sell",
-      priceChange: string,           
-      priceChangePercent: string,    
-      high24h: string,               
-      low24h: string,                
-      volume24h: string,             
-      quoteVolume24h: string,        
-      timestamp: number
-    }
+    payload: TickerData
 }
 export type TradeData = {
     event: "trade";

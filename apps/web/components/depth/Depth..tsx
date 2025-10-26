@@ -34,41 +34,84 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
     const depthCallbackId = `orderbook-depth-${market}`;
     const tickerCallbackId = `orderbook-ticker-${market}`;
 
+    console.log('🔧 [Orderbook] Subscribing to market:', market);
     manager.subscribe(market);
 
+    // Register depth callback
     manager.registerCallback('depth', (depth: DepthUpdate) => {
-      if (depth.symbol === market) {
-        // Just transform array format to object format - NO calculations
-        const transformedBids: Order[] = depth.bids.map(([price, size, total]) => ({
+      console.log('📦 [Orderbook] Depth callback triggered:', depth);
+      
+      if (depth.symbol !== market) {
+        console.log('⚠️ [Orderbook] Symbol mismatch:', depth.symbol, 'vs', market);
+        return;
+      }
+      
+      console.log('✅ [Orderbook] Processing depth for', market);
+      console.log('   Bids:', depth.bids);
+      console.log('   Asks:', depth.asks);
+      
+      const validBids = depth.bids.filter(([price, size]) => parseFloat(size) > 0);
+      const validAsks = depth.asks.filter(([price, size]) => parseFloat(size) > 0);
+      
+      console.log('✅ [Orderbook] Valid orders - Bids:', validBids.length, 'Asks:', validAsks.length);
+      
+      // Calculate cumulative totals for bids
+      let bidRunningTotal = 0;
+      const transformedBids: Order[] = validBids.map(([price, size]) => {
+        bidRunningTotal += parseFloat(size);
+        return {
           price,
           size,
-          total
-        }));
+          total: bidRunningTotal.toFixed(8)
+        };
+      });
 
-        const transformedAsks: Order[] = depth.asks.map(([price, size, total]) => ({
+      // Calculate cumulative totals for asks
+      let askRunningTotal = 0;
+      const transformedAsks: Order[] = validAsks.map(([price, size]) => {
+        askRunningTotal += parseFloat(size);
+        return {
           price,
           size,
-          total
-        }));
+          total: askRunningTotal.toFixed(8)
+        };
+      });
 
-        setBids(transformedBids);
-        setAsks(transformedAsks);
-        
-        // Backend will send buyPercentage
-        if (depth.buyPercentage !== undefined) {
-          setBuyPercentage(depth.buyPercentage);
-        }
+      console.log('📊 [Orderbook] Transformed - Bids:', transformedBids, 'Asks:', transformedAsks);
+
+      setBids(transformedBids);
+      setAsks(transformedAsks);
+      
+      // Calculate buy/sell pressure
+      const totalBidVolume = bidRunningTotal;
+      const totalAskVolume = askRunningTotal;
+      const totalVolume = totalBidVolume + totalAskVolume;
+      
+      if (totalVolume > 0) {
+        const newBuyPercentage = (totalBidVolume / totalVolume) * 100;
+        console.log('📊 [Orderbook] Buy percentage:', newBuyPercentage.toFixed(2) + '%');
+        setBuyPercentage(newBuyPercentage);
       }
     }, depthCallbackId);
 
+    // Register ticker callback
     manager.registerCallback('ticker', (ticker) => {
-      if (ticker.symbol === market) {
-        setCurrentPrice(parseFloat(ticker.lastPrice));
-        setPriceChange(parseFloat(ticker.priceChange));
+      console.log('🎫 [Orderbook] Ticker callback triggered:', ticker);
+      
+      if (ticker.symbol !== market) {
+        console.log('⚠️ [Orderbook] Ticker symbol mismatch:', ticker.symbol, 'vs', market);
+        return;
       }
+      
+      console.log('✅ [Orderbook] Setting price:', ticker.lastPrice, 'change:', ticker.priceChange);
+      setCurrentPrice(parseFloat(ticker.lastPrice));
+      setPriceChange(parseFloat(ticker.priceChange));
     }, tickerCallbackId);
 
+    console.log('✅ [Orderbook] Callbacks registered');
+
     return () => {
+      console.log('🧹 [Orderbook] Cleaning up for', market);
       manager.deRegisterCallback('depth', depthCallbackId);
       manager.deRegisterCallback('ticker', tickerCallbackId);
       manager.unsubscribe(market);
@@ -91,13 +134,17 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
     1
   );
 
+  console.log('🎨 [Orderbook] Rendering - Bids:', bids.length, 'Asks:', asks.length);
+
   if (asks.length === 0 && bids.length === 0) {
     return (
       <div className="flex flex-col h-full text-gray-100 text-sm pt-2">
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
         <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         <OrderbookHeader baseAsset={baseAsset} quoteAsset={quoteAsset} />
-        <div className="text-gray-400 text-center py-8">Loading order book...</div>
+        <div className="text-gray-400 text-center py-8">
+          Loading order book for {market}...
+        </div>
       </div>
     );
   }

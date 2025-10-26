@@ -34,7 +34,7 @@ export default function Home() {
                     </div>
                 </div>
                 <div className="w-[300px] bg-[#14151b] rounded-lg">
-                    <Orderbook baseAsset={base} quoteAsset={quote} />
+                    <Orderbook market={market as string} baseAsset={base} quoteAsset={quote} />
                 </div>
             </div>
         </div>

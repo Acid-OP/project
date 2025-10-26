@@ -395,37 +395,37 @@ export class Engine {
         }}
 
     }
-    private UpdatedDepth(price:string , market:string) {
+
+    private UpdatedDepth(price: string, market: string) {
         console.log(`[Engine] Updating depth for ${market} at price ${price}`);
         const orderbook = this.orderBooks.find(x => x.getMarketPair() === market);
-        if(!orderbook){
+        if (!orderbook) {
             console.error(`[Engine] Orderbook not found for ${market}`);
-            return
+            return;
         }
+        
         const depth = orderbook.getDepth();
-        if(!depth) {
+        if (!depth) {
             console.error(`[Engine] Depth not available for ${market}`);
             return;
         }
-        const aggregatedBids = depth?.aggregatedBids ?? [];
-        const aggregatedAsks = depth?.aggregatedAsks ?? [];
-
-        const updatedBids = aggregatedBids.filter(x => x[0] === price);
-        const updatedAsks = aggregatedAsks.filter(x => x[0] === price);
 
         const depthData: DepthData = {
             event: "depth",
             symbol: market,
-            asks: updatedAsks.length ? updatedAsks : [[price, "0"]],
-            bids: updatedBids.length ? updatedBids : [[price, "0"]],
+            bids: depth.aggregatedBids,  
+            asks: depth.aggregatedAsks,  
             timestamp: Date.now(),
         };
+        
         RedisManager.getInstance().Publish(`depth@${market}`, {
             stream: `depth@${market}`,
             data: depthData
         });
-        console.log(`[Engine] Depth published for ${market}`);
+        
+        console.log(`[Engine] Full depth published for ${market} - bids: ${depth.aggregatedBids.length}, asks: ${depth.aggregatedAsks.length}`);
     }
+    
     async process({message , clientId}: {message:ResponseFromHTTP , clientId:string}) {
         console.log(`[Engine] Processing message type: ${message.type} from client: ${clientId}`);
         switch(message.type) {
@@ -583,19 +583,31 @@ export class Engine {
                     if (!orderbook) {
                         throw new Error("No orderbook found");
                     }
-                    const depth = orderbook.getDepth()
-                    console.log(`[Engine] DEPTH response - bids: ${depth?.aggregatedBids?.length}, asks: ${depth?.aggregatedAsks?.length}`);
+                    const depth = orderbook.getDepth();
+                    
+                    const depthResponse: DepthData = {
+                        event: "depth",
+                        symbol: market,
+                        bids: depth.aggregatedBids,
+                        asks: depth.aggregatedAsks,
+                        timestamp: Date.now()
+                    };
+                    
+                    console.log(`[Engine] DEPTH response - symbol: ${market}, bids: ${depth?.aggregatedBids?.length}, asks: ${depth?.aggregatedAsks?.length}`);
                     RedisManager.getInstance().ResponseToHTTP(clientId, {
                         type: "DEPTH",
-                        payload : depth
+                        payload: depthResponse
                     });
                 } catch(e) {
                     console.error("[Engine] Error during GET_DEPTH:", e);
                     RedisManager.getInstance().ResponseToHTTP(clientId, {
                         type: "DEPTH",
                         payload: {
-                            aggregatedAsks : [],
-                            aggregatedBids : []
+                            event: "depth" as const,  
+                            symbol: message.data.market,
+                            bids: [],
+                            asks: [],
+                            timestamp: Date.now()
                         }
                     });
                 }

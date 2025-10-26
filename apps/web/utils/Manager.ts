@@ -16,8 +16,8 @@ export interface Ticker {
 
 export interface DepthUpdate {
   symbol: string;
-  bids: [string, string, string][]; 
-  asks: [string, string, string][]; 
+  bids: [string, string][]; 
+  asks: [string, string][]; 
   buyPercentage?: number;
   timestamp: number;
 }
@@ -195,9 +195,9 @@ export class SignalingManager {
   private handleDepthUpdate(symbol: string, data: any) {
       const depthUpdate: DepthUpdate = {
         symbol: symbol,
-        bids: data.b || [],    
-        asks: data.a || [],       
-        timestamp: data.id || Date.now()  
+        bids: data.bids || [],  
+        asks: data.asks || [],    
+        timestamp: data.timestamp || Date.now()  
       };
 
       this.depthCache[symbol] = depthUpdate;

@@ -100,14 +100,14 @@ export class OrderBook {
         return {executedQty , fills};
     }
 
-    getDepth() {
-        const aggregatedBids: [string , string][] = [];
-        const aggregatedAsks: [string , string][] = [];
+    getDepth(limit: number = 20) {
+        const aggregatedBids: [string, string][] = [];
+        const aggregatedAsks: [string, string][] = [];
 
         const bidLevels: Record<string, number> = {};
         const askLevels: Record<string, number> = {};
 
-        for(let i=0 ; i < this.bids.length; i++ ) {
+        for(let i=0; i < this.bids.length; i++) {
             const order = this.bids[i];
             if(order && typeof order.price === "number") {
                 const pricekey = order.price.toString();
@@ -116,7 +116,7 @@ export class OrderBook {
             }
         }
 
-        for(let i=0 ; i< this.asks.length ; i++) {
+        for(let i=0; i < this.asks.length; i++) {
             const order = this.asks[i];
             if(order && typeof order.price === "number") {
                 const pricekey = order.price.toString();
@@ -125,20 +125,27 @@ export class OrderBook {
             }
         }
 
-        for (const price in bidLevels){
-            if(bidLevels[price]){
-                aggregatedBids.push([price,bidLevels[price].toString()]);
+        for (const price in bidLevels) {
+            if(bidLevels[price]) {
+                aggregatedBids.push([price, bidLevels[price].toString()]);
             }
         }
 
-        for (const price in askLevels){
-            if(askLevels[price]){
-                aggregatedAsks.push([price,askLevels[price].toString()]);
+        for (const price in askLevels) {
+            if(askLevels[price]) {
+                aggregatedAsks.push([price, askLevels[price].toString()]);
             }
         }
+
+        aggregatedBids.sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+        aggregatedAsks.sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+
         console.log(`[OrderBook] Depth calculated - bids: ${aggregatedBids.length} levels, asks: ${aggregatedAsks.length} levels`);
-        return {aggregatedBids , aggregatedAsks};
-
+        
+        return {
+            aggregatedBids: aggregatedBids.slice(0, limit),
+            aggregatedAsks: aggregatedAsks.slice(0, limit)
+        };
     }
     cancelBid (order:Order) {
         console.log(`[OrderBook] Cancelling bid order ${order.orderId}`);
