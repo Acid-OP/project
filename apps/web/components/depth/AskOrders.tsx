@@ -16,7 +16,7 @@ interface AskOrdersProps {
 export function AskOrders({ asks, maxTotal, calculateBarWidth, calculateSizeBarWidth }: AskOrdersProps) {
   return (
     <div className="flex-shrink-0 space-y-[3.5px]">
-      {asks.map((ask, idx) => (
+      {asks.slice().reverse().map((ask, idx) => (
         <div
           key={`ask-${idx}`}
           className="relative grid grid-cols-3 px-4 py-0.5 hover:bg-gray-900 cursor-pointer"

@@ -37,7 +37,6 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
     console.log('🔧 [Orderbook] Subscribing to market:', market);
     manager.subscribe(market);
 
-    // Register depth callback
     manager.registerCallback('depth', (depth: DepthUpdate) => {
       console.log('📦 [Orderbook] Depth callback triggered:', depth);
       
@@ -46,34 +45,28 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
         return;
       }
       
-      console.log('✅ [Orderbook] Processing depth for', market);
-      console.log('   Bids:', depth.bids);
-      console.log('   Asks:', depth.asks);
-      
       const validBids = depth.bids.filter(([price, size]) => parseFloat(size) > 0);
       const validAsks = depth.asks.filter(([price, size]) => parseFloat(size) > 0);
       
       console.log('✅ [Orderbook] Valid orders - Bids:', validBids.length, 'Asks:', validAsks.length);
       
-      // Calculate cumulative totals for bids
-      let bidRunningTotal = 0;
-      const transformedBids: Order[] = validBids.map(([price, size]) => {
-        bidRunningTotal += parseFloat(size);
-        return {
-          price,
-          size,
-          total: bidRunningTotal.toFixed(8)
-        };
-      });
-
-      // Calculate cumulative totals for asks
       let askRunningTotal = 0;
       const transformedAsks: Order[] = validAsks.map(([price, size]) => {
         askRunningTotal += parseFloat(size);
         return {
-          price,
-          size,
-          total: askRunningTotal.toFixed(8)
+          price: parseFloat(price).toFixed(2),
+          size: parseFloat(size).toFixed(2),
+          total: askRunningTotal.toFixed(2)
+        };
+      });
+
+      let bidRunningTotal = 0;
+      const transformedBids: Order[] = validBids.map(([price, size]) => {
+        bidRunningTotal += parseFloat(size);
+        return {
+          price: parseFloat(price).toFixed(2),
+          size: parseFloat(size).toFixed(2),
+          total: bidRunningTotal.toFixed(2)
         };
       });
 
@@ -82,7 +75,6 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
       setBids(transformedBids);
       setAsks(transformedAsks);
       
-      // Calculate buy/sell pressure
       const totalBidVolume = bidRunningTotal;
       const totalAskVolume = askRunningTotal;
       const totalVolume = totalBidVolume + totalAskVolume;
@@ -94,7 +86,6 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
       }
     }, depthCallbackId);
 
-    // Register ticker callback
     manager.registerCallback('ticker', (ticker) => {
       console.log('🎫 [Orderbook] Ticker callback triggered:', ticker);
       
@@ -136,45 +127,48 @@ const Orderbook: React.FC<OrderbookProps> = ({ market, baseAsset, quoteAsset }) 
 
   console.log('🎨 [Orderbook] Rendering - Bids:', bids.length, 'Asks:', asks.length);
 
-  if (asks.length === 0 && bids.length === 0) {
-    return (
-      <div className="flex flex-col h-full text-gray-100 text-sm pt-2">
+  return (
+    <div className="flex flex-col h-full text-gray-100 text-sm">
+      <div className="flex-shrink-0">
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
         <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         <OrderbookHeader baseAsset={baseAsset} quoteAsset={quoteAsset} />
-        <div className="text-gray-400 text-center py-8">
-          Loading order book for {market}...
+      </div>
+      
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col justify-end overflow-hidden">
+          <div className="overflow-y-auto flex flex-col-reverse">
+            <AskOrders
+              asks={asks}
+              maxTotal={maxTotal}
+              calculateBarWidth={calculateBarWidth}
+              calculateSizeBarWidth={calculateSizeBarWidth}
+            />
+          </div>
+        </div>
+        
+        <div className="flex-shrink-0">
+          <CurrentPrice
+            currentPrice={currentPrice}
+            priceChange={priceChange}
+          />
+        </div>
+        
+        <div className="flex-1 overflow-hidden">
+          <div className="overflow-y-auto">
+            <BidOrders
+              bids={bids}
+              maxTotal={maxTotal}
+              calculateBarWidth={calculateBarWidth}
+              calculateSizeBarWidth={calculateSizeBarWidth}
+            />
+          </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-col h-full text-gray-100 text-sm pt-2">
-      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-      <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-      <OrderbookHeader baseAsset={baseAsset} quoteAsset={quoteAsset} />
-      
-      <AskOrders
-        asks={asks}
-        maxTotal={maxTotal}
-        calculateBarWidth={calculateBarWidth}
-        calculateSizeBarWidth={calculateSizeBarWidth}
-      />
-      
-      <CurrentPrice
-        currentPrice={currentPrice}
-        priceChange={priceChange}
-      />
-      
-      <BidOrders
-        bids={bids}
-        maxTotal={maxTotal}
-        calculateBarWidth={calculateBarWidth}
-        calculateSizeBarWidth={calculateSizeBarWidth}
-      />
-      
-      <BuySellPressure buyPercentage={buyPercentage} />
+      <div className="flex-shrink-0">
+        <BuySellPressure buyPercentage={buyPercentage} />
+      </div>
     </div>
   );
 };
