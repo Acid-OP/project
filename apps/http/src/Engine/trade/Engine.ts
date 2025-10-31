@@ -66,7 +66,7 @@ export class Engine {
         
         const open24h = currentStats?.open24h && currentStats.open24h !== 0 
             ? currentStats.open24h 
-            : history[0]?.price || 0;
+            : 0; 
         
         const high24h = Math.max(...history.map(t => t.price));
         const low24h = Math.min(...history.map(t => t.price));
@@ -74,7 +74,7 @@ export class Engine {
         const quoteVolume24h = history.reduce((sum, t) => sum + (t.price * t.quantity), 0);
         const lastPrice = history[history.length - 1]?.price || 0;
         
-        return {
+        const updatedStats = {
             open24h,
             high24h,
             low24h,
@@ -82,8 +82,11 @@ export class Engine {
             quoteVolume24h,
             lastPrice
         };
+        
+        this.marketStats.set(market, updatedStats);
+        
+        return updatedStats;
     }
-
     private updateMarketStats(market: string, fills: Fill[]): void {
         const history = this.tradeHistory.get(market) || [];
         
@@ -268,15 +271,19 @@ export class Engine {
                 data: tradeData
             });
         });
+        
         this.updateMarketStats(market, fills);
+        
+        const stats = this.marketStats.get(market);
+        if (!stats) return;
+        
         const priceGroups = new Map<string, number>();
         fills.forEach(fill => {
             const currentQty = priceGroups.get(fill.price) || 0;
             priceGroups.set(fill.price, currentQty + fill.qty);
         });
+        
         priceGroups.forEach((totalQty, price) => {
-            const stats = this.marketStats.get(market); 
-            if (!stats) return;
             const priceChange = Number(price) - stats.open24h;
             const priceChangePercent = (stats.open24h && stats.open24h !== 0)
                 ? ((priceChange / stats.open24h) * 100).toFixed(2)
@@ -307,9 +314,6 @@ export class Engine {
             const lastFill = fills[fills.length - 1];
             if (!lastFill) return;
             
-            const stats = this.marketStats.get(market);
-            if (!stats) return;
-            
             const priceChange = Number(lastFill.price) - stats.open24h;
             const priceChangePercent = (stats.open24h && stats.open24h !== 0)
                 ? ((priceChange / stats.open24h) * 100).toFixed(2)
@@ -329,10 +333,9 @@ export class Engine {
                 quoteVolume24h: stats.quoteVolume24h.toString(),
                 timestamp: Date.now()
             };     
-            console.log(`[Engine] Latest ticker updated for ${market}: ${lastFill.price}`);
+            console.log(`[Engine] Latest ticker updated for ${market}: price=${lastFill.price}, change=${priceChange}`);
         }
     }
-        
     private defaultBalances(userId:string) {
         if(!userId) {
             return

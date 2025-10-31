@@ -1,12 +1,17 @@
 import express from "express";
 import dotenv from "dotenv";
 import "./Engine/main/dequeue";
+import cors from "cors";
 import { Manager } from "./RedisClient";
 import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_TICKER } from "./types/orders";
 
 dotenv.config();
 const app = express();
-app.use(express.json());
+app.use(express.json())
+app.use(cors({
+  origin: 'http://localhost:3000',  
+  credentials: true
+}));
 const PORT = process.env.HTTP_PORT;
 
 app.post("/order", async (req, res) => {

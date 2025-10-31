@@ -2,18 +2,16 @@ import { createClient, RedisClientType } from "redis";
 import { ResponseFromOrderbook } from "./types/responses";
 
 export class Manager {
-    private client: RedisClientType;          // For queue operations (LPUSH)
-    private pubSubClient: RedisClientType;    // For PubSub (SUBSCRIBE)
+    private client: RedisClientType;
+    private pubSubClient: RedisClientType;    
     private static instance: Manager;
 
     private constructor() {
-        // Client for regular operations (LPUSH, RPOP, etc.)
         this.client = createClient();
         this.client.connect()
             .then(() => console.log("🔗 Redis client connected successfully"))
             .catch((err) => console.error("❌ Redis client connection failed:", err));
 
-        // Separate client for PubSub operations
         this.pubSubClient = createClient();
         this.pubSubClient.connect()
             .then(() => console.log("🔗 Redis PubSub client connected successfully"))

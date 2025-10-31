@@ -182,6 +182,7 @@ export class OrderBook {
         if(order.side === "buy") {
             const {executedQty , fills} = this.matchBid(order);
             order.filled = executedQty;
+            
             if (executedQty === order.quantity) {
                 console.log(`[OrderBook] Buy order fully filled`);
                 return {
@@ -189,9 +190,11 @@ export class OrderBook {
                     fills
                 }
             }
-            if(order.quantity > 0){
+            
+            const remainingQty = order.quantity - executedQty;
+            if(remainingQty > 0){
                 this.bids.push(order);
-                console.log(`[OrderBook] Buy order added to book - remaining: ${order.quantity - executedQty}`);
+                console.log(`[OrderBook] Buy order added to book - remaining: ${remainingQty}`);
             }
             this.sortBids(); 
             return {
@@ -209,9 +212,10 @@ export class OrderBook {
                     fills
                 }
             }
-            if(order.quantity > 0){
+            const remainingQty = order.quantity - executedQty;
+            if(remainingQty > 0){
                 this.asks.push(order);
-                console.log(`[OrderBook] Sell order added to book - remaining: ${order.quantity - executedQty}`);
+                console.log(`[OrderBook] Sell order added to book - remaining: ${remainingQty}`);
             }
             this.sortAsks();
             return{
