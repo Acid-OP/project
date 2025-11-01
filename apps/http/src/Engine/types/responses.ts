@@ -3,6 +3,7 @@ export type CREATE_ORDER = "CREATE_ORDER"
 export type CANCEL_ORDER = "CANCEL_ORDER"
 export type GET_DEPTH = "GET_DEPTH"
 export type GET_TICKER = "GET_TICKER"
+export type GET_KLINE = "GET_KLINE";
 export type ResponseFromHTTP = {
     type: CREATE_ORDER;
     data: {
@@ -28,7 +29,14 @@ export type ResponseFromHTTP = {
     data: {
       market : string
     }
+  } | {
+    type: GET_KLINE,
+    data: {
+      market: string,
+      interval?: string, 
+      limit?: number     
   }
+}
 
 export type ResponseToHTTP = {
     type: "ORDER_PLACED",
@@ -54,6 +62,9 @@ export type ResponseToHTTP = {
   } | {
     type: "TICKER",
     payload: TickerData
+  } | {
+    type: "KLINE",          
+    payload: KlineData     
 }
 export type TradeData = {
     event: "trade";
@@ -101,3 +112,18 @@ export interface MarketStats {
     quoteVolume24h: number;
     lastPrice: number;
 }
+
+export interface KlineCandle {
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+}
+
+export interface KlineData {
+    symbol: string;
+    interval: string;
+    candles: KlineCandle[];
+}  

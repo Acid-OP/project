@@ -1,7 +1,8 @@
-import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_TICKER } from "../../types/orders";
+import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_KLINE, GET_TICKER } from "../../types/orders";
 import { RedisManager } from "../RedisManager";
 import { DepthData, MarketStats, ResponseFromHTTP, TickerData, TradeData, TradeHistoryEntry } from "../types/responses";
 import { BASE_CURRENCY, Fill, Order, UserBalance, userId } from "../types/trading";
+import { KlineManager } from "./KlineManager";
 import { OrderBook } from "./OrderBook";
 
 export class Engine {
@@ -9,7 +10,7 @@ export class Engine {
     private balances: Map<userId , UserBalance> = new Map();
     private tradeHistory: Map<string, TradeHistoryEntry[]> = new Map();
     private marketStats: Map<string, MarketStats> = new Map();
-    
+    private klineManager: KlineManager;
     private latestTickers: Record<string, any> = {};
     constructor() {
         console.log('[Engine] Initializing Engine with orderbooks');
@@ -18,6 +19,7 @@ export class Engine {
             new OrderBook("ELON_USD", [] , [] , 0 , 50000)
         ];
         this.initializeMarketStats();
+        this.klineManager = new KlineManager();
         console.log('[Engine] Engine initialized with markets:', this.orderBooks.map(ob => ob.getMarketPair()));
     }
     
@@ -87,6 +89,7 @@ export class Engine {
         
         return updatedStats;
     }
+
     private updateMarketStats(market: string, fills: Fill[]): void {
         const history = this.tradeHistory.get(market) || [];
         
@@ -102,13 +105,10 @@ export class Engine {
         });
         
         this.tradeHistory.set(market, history);
-        
-        // Clean old trades periodically (every 100 trades to avoid overhead)
         if (history.length % 100 === 0) {
             this.cleanOldTrades(market);
         }
         
-        // Recalculate stats
         const stats = this.calculate24hStats(market);
         this.marketStats.set(market, stats);
         
@@ -144,7 +144,7 @@ export class Engine {
             event: "ticker",
             symbol: market,
             price: stats.lastPrice.toString(),
-            quantity: "0",  // ← FIXED: Not using volume24h here
+            quantity: "0",  
             side: side,
             priceChange: priceChange.toString(),
             priceChangePercent: priceChangePercent,
@@ -622,7 +622,6 @@ export class Engine {
                         const lastTicker = this.latestTickers?.[market];
                         
                         if (!lastTicker) {
-                            // If no ticker exists, generate one from current stats
                             const enhancedTicker = this.getEnhancedTicker(market, "buy");
                             console.log(`[Engine] Generated new ticker for ${market}`);
                             RedisManager.getInstance().ResponseToHTTP(clientId, {
@@ -645,6 +644,59 @@ export class Engine {
                         });
                     }
                 break;
+                case GET_KLINE:
+                    console.log(`[Engine] GET_KLINE received for market:`, message.data.market);
+                    try {
+                        const market = message.data.market;
+                        const interval = message.data.interval || "1m"; 
+                        const limit = message.data.limit || 100; 
+                        
+                        const currentKline = this.klineManager.getCurrentKline(market, interval);
+                        
+                        if (!currentKline) {
+                            // No data yet, return empty
+                            console.log(`[Engine] No kline data for ${market}@${interval}`);
+                            RedisManager.getInstance().ResponseToHTTP(clientId, {
+                                type: "KLINE",
+                                payload: {
+                                    symbol: market,
+                                    interval: interval,
+                                    candles: []
+                                }
+                            });
+                        } else {
+                            // Return current candle
+                            const klineResponse = {
+                                symbol: market,
+                                interval: interval,
+                                candles: [{
+                                    timestamp: currentKline.openTime,
+                                    open: currentKline.open,
+                                    high: currentKline.high,
+                                    low: currentKline.low,
+                                    close: currentKline.close,
+                                    volume: currentKline.volume
+                                }]
+                            };
+                            
+                            console.log(`[Engine] KLINE response - symbol: ${market}, interval: ${interval}, candles: 1`);
+                            RedisManager.getInstance().ResponseToHTTP(clientId, {
+                                type: "KLINE",
+                                payload: klineResponse
+                            });
+                        }
+                    } catch (e) {
+                        console.error("[Engine] Error during GET_KLINE:", e);
+                        RedisManager.getInstance().ResponseToHTTP(clientId, {
+                            type: "KLINE",
+                            payload: {
+                                symbol: message.data.market,
+                                interval: message.data.interval || "1m",
+                                candles: []
+                            }
+                        });
+                    }
+                    break;
 
             default:
                 console.warn(`[Engine] Unknown message type: ${(message as any).type}`);
