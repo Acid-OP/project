@@ -160,6 +160,29 @@ export class Subscription {
             };
         }
         
+        if (stream && stream.startsWith('kline@')) {
+            return {
+                type: "kline",
+                stream: stream,
+                data: {
+                    event: data.event || "kline",
+                    symbol: data.symbol,
+                    interval: data.interval,
+                    kline: {
+                        timestamp: data.kline.timestamp,
+                        open: data.kline.open,
+                        high: data.kline.high,
+                        low: data.kline.low,
+                        close: data.kline.close,
+                        volume: data.kline.volume,
+                        trades: data.kline.trades,
+                        isClosed: data.kline.isClosed,
+                        newCandleInitiated: data.kline.newCandleInitiated
+                    }
+                }
+            };
+        }
+        
         console.warn(`⚠️ Unknown message format on channel ${channel}`);
         return parsedMessage;
     }
@@ -202,7 +225,7 @@ export class Subscription {
     }
 
     private isValidSubscription(sub: string): boolean {
-        const pattern = /^(ticker|depth|trade|kline)@[A-Z0-9_]+$/;
+        const pattern = /^(ticker|depth|trade|kline)@[A-Z0-9_]+(@(1m|5m|15m|1h|4h|1d))?$/;
         return pattern.test(sub) && sub.length < 50;
     }
 

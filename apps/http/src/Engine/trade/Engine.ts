@@ -272,6 +272,54 @@ export class Engine {
             });
         });
         
+        fills.forEach(fill => {
+            const price = Number(fill.price);
+            const quantity = fill.qty;
+            const timestamp = Date.now();
+            
+            const intervals = ['1m', '5m', '15m', '1h', '4h', '1d'];
+            
+            intervals.forEach(interval => {
+                try {
+                    const { kline, newCandleInitiated } = this.klineManager.updateKline(
+                        market,
+                        interval,
+                        price,
+                        quantity,
+                        timestamp
+                    );
+                    
+                    const klineData = {
+                        event: "kline",
+                        symbol: market,
+                        interval: interval,
+                        kline: {
+                            timestamp: kline.openTime,
+                            open: kline.open,
+                            high: kline.high,
+                            low: kline.low,
+                            close: kline.close,
+                            volume: kline.volume,
+                            trades: kline.trades,
+                            isClosed: kline.isClosed,
+                            newCandleInitiated: newCandleInitiated
+                        }
+                    };
+                    
+                    RedisManager.getInstance().Publish(`kline@${market}@${interval}`, {
+                        stream: `kline@${market}@${interval}`,
+                        data: klineData
+                    });
+                    
+                    if (newCandleInitiated) {
+                        console.log(`[Engine] 🕯️ NEW CANDLE started for ${market}@${interval}`);
+                    }
+                } catch (error) {
+                    console.error(`[Engine] Error updating kline for ${market}@${interval}:`, error);
+                }
+            });
+        });
+
         this.updateMarketStats(market, fills);
         
         const stats = this.marketStats.get(market);
@@ -336,6 +384,7 @@ export class Engine {
             console.log(`[Engine] Latest ticker updated for ${market}: price=${lastFill.price}, change=${priceChange}`);
         }
     }
+
     private defaultBalances(userId:string) {
         if(!userId) {
             return
@@ -649,12 +698,10 @@ export class Engine {
                     try {
                         const market = message.data.market;
                         const interval = message.data.interval || "1m"; 
-                        const limit = message.data.limit || 100; 
                         
                         const currentKline = this.klineManager.getCurrentKline(market, interval);
                         
                         if (!currentKline) {
-                            // No data yet, return empty
                             console.log(`[Engine] No kline data for ${market}@${interval}`);
                             RedisManager.getInstance().ResponseToHTTP(clientId, {
                                 type: "KLINE",
@@ -665,17 +712,19 @@ export class Engine {
                                 }
                             });
                         } else {
-                            // Return current candle
                             const klineResponse = {
                                 symbol: market,
                                 interval: interval,
                                 candles: [{
                                     timestamp: currentKline.openTime,
+                                    closeTime: currentKline.closeTime,
                                     open: currentKline.open,
                                     high: currentKline.high,
                                     low: currentKline.low,
                                     close: currentKline.close,
-                                    volume: currentKline.volume
+                                    volume: currentKline.volume,
+                                    trades: currentKline.trades,
+                                    isClosed: currentKline.isClosed 
                                 }]
                             };
                             
